@@ -2,7 +2,7 @@
 
 > **مدير خلفيات أنمي تلقائي لهواتف Android | Automatic anime wallpaper manager for Android phones**
 
-**Latest release | أحدث إصدار: [v4.0.6-lint-fixes](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.6-lint-fixes)** — Direct APK | تحميل مباشر: [magen-wallpaper-v4.0.6-lint-fixes.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.6-lint-fixes/magen-wallpaper-v4.0.6-lint-fixes.apk)
+**Latest release | أحدث إصدار: [v4.0.8](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.8)** — Direct APK | تحميل مباشر: [magen-wallpaper-v4.0.8.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.8/magen-wallpaper-v4.0.8.apk)
 
 **EN:** Magen Wallpaper is an Android app forked from Magen Wallpaper 4.0.3 and reworked into a practical anime wallpaper manager. It picks anime images from folders on the phone, organizes them into separate albums, and applies them automatically to the home and lock screens on a user-defined schedule or right after unlocking the device. It works fully in the background using `AlarmManager` (with a `WorkManager` fallback), reschedules after reboot, and supports Arabic, English, and system language with dark mode.
 
@@ -101,7 +101,7 @@
 
 يمكن تنزيل أحدث إصدار من صفحة [GitHub Releases](https://github.com/magen-gillan/magen-wallpaper/releases).
 
-**أحدث إصدار حالياً: [v4.0.6-lint-fixes](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.6-lint-fixes)** — تحميل مباشر: [magen-wallpaper-v4.0.6-lint-fixes.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.6-lint-fixes/magen-wallpaper-v4.0.6-lint-fixes.apk)
+**أحدث إصدار حالياً: [v4.0.8](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.8)** — تحميل مباشر: [magen-wallpaper-v4.0.8.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.8/magen-wallpaper-v4.0.8.apk)
 
 > **تنبيه:** لا تثبّت APK من مصدر غير موثوق. تحقّق من اسم الإصدار وبصمة SHA-256 المنشورة مع ملف الإصدار قبل التثبيت إذا كنت تحتاج إلى التحقق التشفيري من الملف.
 

@@ -1,3 +1,14 @@
+## v4.0.8
+
+- Replaced the launcher icon with the new Magen badge artwork (phone with synced
+  photo cards, circular sync arrows, and the gold "M" monogram) across all
+  adaptive, legacy, monochrome, and Play Store icon slots.
+- Removed build artifacts, stray images, and every trace of the old icon from the
+  repository history; the clone is now a fraction of its former size.
+- Switched icon drawables to WebP and recompressed documentation and store
+  screenshots to keep the repository lean.
+- Restricted release APKs to arm64-v8a.
+
 ## v4.0.3
 
 - Kept scheduled static changes in the device's natural orientation, even when a
