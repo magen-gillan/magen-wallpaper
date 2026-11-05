@@ -32,10 +32,13 @@ android {
         applicationId = "com.anthonyla.paperize"
         minSdk = 31
         targetSdk = 36
-        versionCode = 57
-        versionName = "4.0.6"
+        versionCode = 58
+        versionName = "4.0.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
         vectorDrawables {
             useSupportLibrary = true
         }
