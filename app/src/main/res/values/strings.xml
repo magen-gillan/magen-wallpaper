@@ -22,6 +22,9 @@
   <string name="currently_selected_album">Currently selected album</string>
   <string name="agree">Agree</string>
   <string name="welcome">Welcome</string>
+  <string name="startup_description">Manage anime wallpapers for your home and lock screens. Change them on a schedule or right when you unlock your phone.</string>
+  <string name="magen_logo_description">MG logo</string>
+  <string name="alisha_description">Alisha chibi mascot</string>
     <string name="continue_button">I\'m In</string>
   <string name="allow">Allow</string>
   <string name="privacy_policy">Privacy Policy</string>

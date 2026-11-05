@@ -72,7 +72,7 @@ fun NavigationGraph(
             )
         }
 
-        // Wallpaper mode selection screen
+        // Wallpaper mode selection is required because the home screen depends on STATIC or LIVE.
         composable<WallpaperModeSelectionRoute>(
             enterTransition = enterForward,
             exitTransition = exitForward,

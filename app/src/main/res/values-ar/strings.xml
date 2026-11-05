@@ -20,6 +20,9 @@
     <string name="currently_selected_album">الألبوم المحدد حاليًا</string>
     <string name="agree">موافقة</string>
     <string name="welcome">مرحبًا</string>
+    <string name="startup_description">أدِر خلفيات الأنمي للشاشة الرئيسية وشاشة القفل، وغيّرها وفق جدول أو فور فتح قفل الهاتف.</string>
+    <string name="magen_logo_description">شعار MG</string>
+    <string name="alisha_description">شخصية اليشيا تشيبي</string>
     <string name="continue_button">متابعة</string>
     <string name="allow">السماح</string>
     <string name="privacy_policy">سياسة الخصوصية</string>

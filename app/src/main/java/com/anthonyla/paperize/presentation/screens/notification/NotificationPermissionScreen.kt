@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,7 +18,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -55,11 +58,11 @@ fun NotificationPermissionScreen(
         title = stringResource(R.string.notification_permission_title),
         modifier = modifier,
         iconContent = {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = null,
-                modifier = Modifier.size(AppIconSizes.huge),
-                tint = MaterialTheme.colorScheme.primary
+            Image(
+                painter = painterResource(R.drawable.alisha_chibi),
+                contentDescription = stringResource(R.string.alisha_description),
+                modifier = Modifier.size(108.dp),
+                contentScale = ContentScale.Fit
             )
         },
         content = {
@@ -67,6 +70,12 @@ fun NotificationPermissionScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.medium)
             ) {
+                Image(
+                    painter = painterResource(R.drawable.magen_gillan_logo),
+                    contentDescription = stringResource(R.string.magen_logo_description),
+                    modifier = Modifier.size(64.dp),
+                    contentScale = ContentScale.Fit
+                )
                 // Cleaner explanation card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
