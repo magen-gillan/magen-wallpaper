@@ -94,6 +94,18 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Unlock-triggered changes must survive process death. A manifest-declared
+             receiver lets the system cold-start the process on ACTION_USER_PRESENT even
+             when the app was killed or frozen by aggressive OEM battery management. -->
+        <receiver
+            android:name=".service.alarm.ScreenEventReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+
         <!-- Quick Settings Tile -->
         <service
             android:name=".service.tile.WallpaperTileService"

@@ -14,4 +14,4 @@ On-Device Storage: Wallpapers and settings remain on your device for quick acces
 
 Magen Wallpaper is designed to keep wallpaper changes running after the app is closed, subject to Android and device battery-management policies.
 
-Privacy policy: https://anthonyy232.github.io/Magen Wallpaper/
+Privacy policy: https://github.com/magen-gillan/magen-wallpaper

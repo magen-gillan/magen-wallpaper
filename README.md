@@ -2,11 +2,11 @@
 
 > **مدير خلفيات أنمي تلقائي لهواتف Android | Automatic anime wallpaper manager for Android phones**
 
-**Latest release | أحدث إصدار: [v4.0.8](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.8)** — Direct APK | تحميل مباشر: [magen-wallpaper-v4.0.8.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.8/magen-wallpaper-v4.0.8.apk)
+**Latest release | أحدث إصدار: [v4.0.9](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.9)** — Direct APK | تحميل مباشر: [magen-wallpaper-v4.0.9.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.9/magen-wallpaper-v4.0.9.apk)
 
-**EN:** Magen Wallpaper is an Android app forked from Magen Wallpaper 4.0.3 and reworked into a practical anime wallpaper manager. It picks anime images from folders on the phone, organizes them into separate albums, and applies them automatically to the home and lock screens on a user-defined schedule or right after unlocking the device. It works fully in the background using `AlarmManager` (with a `WorkManager` fallback), reschedules after reboot, and supports Arabic, English, and system language with dark mode.
+**EN:** Magen Wallpaper is an Android app reworked into a practical anime wallpaper manager. It picks anime images from folders on the phone, organizes them into separate albums, and applies them automatically to the home and lock screens on a user-defined schedule or right after unlocking the device. It works fully in the background using `AlarmManager` (with a `WorkManager` fallback), reschedules after reboot, and supports Arabic, English, and system language with dark mode.
 
-**Magen Wallpaper** هو تطبيق Android مشتق من مشروع Magen Wallpaper 4.0.3، وأعيد تخصيصه ليكون مديرًا عمليًا لخلفيات الأنمي. وظيفته الأساسية هي اختيار صور أنمي من مجلدات الهاتف، تنظيمها في ألبومات مستقلة، ثم تطبيقها تلقائيًا على الشاشة الرئيسية وشاشة القفل وفق جدول زمني يحدده المستخدم أو فور فتح قفل الهاتف.
+**Magen Wallpaper** هو تطبيق Android أُعيد بناؤه ليكون مديرًا عمليًا لخلفيات الأنمي. وظيفته الأساسية هي اختيار صور أنمي من مجلدات الهاتف، تنظيمها في ألبومات مستقلة، ثم تطبيقها تلقائيًا على الشاشة الرئيسية وشاشة القفل وفق جدول زمني يحدده المستخدم أو فور فتح قفل الهاتف.
 
 لا يحتاج التطبيق إلى إبقاء واجهته مفتوحة حتى يعمل. بعد ضبط الألبومات والجدولة مرة واحدة، يعتمد على مكونات Android الخاصة بالمهام الخلفية والمنبهات ومستقبلات النظام لتنفيذ تغيير الخلفية خارج عمر الشاشة الرئيسية للتطبيق. ويستخدم `AlarmManager` للجدولة الدقيقة، مع مسار احتياطي يعتمد على `WorkManager`، كما يعيد جدولة المهام بعد إعادة تشغيل الهاتف. وتستقبل ميزة **Change on unlock** حدث `USER_PRESENT` لتغيير الخلفية مباشرة بعد نجاح فتح القفل، وليس عند قفل الهاتف.
 
@@ -101,7 +101,7 @@
 
 يمكن تنزيل أحدث إصدار من صفحة [GitHub Releases](https://github.com/magen-gillan/magen-wallpaper/releases).
 
-**أحدث إصدار حالياً: [v4.0.8](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.8)** — تحميل مباشر: [magen-wallpaper-v4.0.8.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.8/magen-wallpaper-v4.0.8.apk)
+**أحدث إصدار حالياً: [v4.0.9](https://github.com/magen-gillan/magen-wallpaper/releases/tag/v4.0.9)** — تحميل مباشر: [magen-wallpaper-v4.0.9.apk](https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.9/magen-wallpaper-v4.0.9.apk)
 
 > **تنبيه:** لا تثبّت APK من مصدر غير موثوق. تحقّق من اسم الإصدار وبصمة SHA-256 المنشورة مع ملف الإصدار قبل التثبيت إذا كنت تحتاج إلى التحقق التشفيري من الملف.
 

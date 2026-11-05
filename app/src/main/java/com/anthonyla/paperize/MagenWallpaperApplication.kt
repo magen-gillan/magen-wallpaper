@@ -3,9 +3,6 @@ package com.anthonyla.paperize
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Intent
-import android.content.IntentFilter
-import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -13,7 +10,6 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.anthonyla.paperize.core.constants.Constants
 import com.anthonyla.paperize.core.util.DataResetManager
-import com.anthonyla.paperize.service.alarm.ScreenEventReceiver
 import com.anthonyla.paperize.service.worker.AlbumRefreshScheduler
 import com.anthonyla.paperize.service.worker.WallpaperScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -38,8 +34,6 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
     @Inject
     lateinit var wallpaperScheduler: WallpaperScheduler
 
-    private var unlockReceiver: ScreenEventReceiver? = null
-
     private val lifecycleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -52,16 +46,11 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
         // Create notification channel (minSdk is 31, so always supported)
         createNotificationChannel()
 
-        // USER_PRESENT is not an exempt implicit broadcast for modern manifest receivers.
-        // Register while the process is alive so unlock changes can run without opening UI.
-        unlockReceiver = ScreenEventReceiver().also { receiver ->
-            ContextCompat.registerReceiver(
-                this,
-                receiver,
-                IntentFilter(Intent.ACTION_USER_PRESENT),
-                ContextCompat.RECEIVER_EXPORTED
-            )
-        }
+        // Unlock-triggered changes are handled by the manifest-declared
+        // ScreenEventReceiver (see AndroidManifest.xml). ACTION_USER_PRESENT is
+        // delivered to manifest receivers, which lets the system cold-start the
+        // process after OEM task killers removed it; a dynamically registered
+        // receiver would die with the process and silently drop changes.
 
         // Process lifecycle distinguishes real background/foreground transitions from activity
         // recreation, so folder-backed albums are refreshed whenever the user returns to the app.
@@ -98,8 +87,6 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
     }
 
     override fun onTerminate() {
-        unlockReceiver?.let { unregisterReceiver(it) }
-        unlockReceiver = null
         super.onTerminate()
     }
 }
