@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -26,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.anthonyla.paperize.R
 import com.anthonyla.paperize.core.constants.Constants
 import com.anthonyla.paperize.presentation.theme.AppSpacing
@@ -40,6 +43,7 @@ fun NotificationPermissionScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var permissionGranted by remember {
         mutableStateOf(PermissionUtil.hasNotificationPermission(context))
@@ -50,7 +54,10 @@ fun NotificationPermissionScreen(
     ) { isGranted ->
         permissionGranted = isGranted
         if (isGranted) {
-            onContinue()
+            coroutineScope.launch {
+                delay(900)
+                onContinue()
+            }
         }
     }
 
@@ -59,7 +66,9 @@ fun NotificationPermissionScreen(
         modifier = modifier,
         iconContent = {
             Image(
-                painter = painterResource(R.drawable.alisha_chibi),
+                painter = painterResource(
+                    if (permissionGranted) R.drawable.alisha_happy else R.drawable.alisha_sad
+                ),
                 contentDescription = stringResource(R.string.alisha_description),
                 modifier = Modifier.size(108.dp),
                 contentScale = ContentScale.Fit
@@ -76,6 +85,37 @@ fun NotificationPermissionScreen(
                     modifier = Modifier.size(64.dp),
                     contentScale = ContentScale.Fit
                 )
+                Image(
+                    painter = painterResource(R.drawable.alisha_control_room),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().height(72.dp).clip(MaterialTheme.shapes.large),
+                    contentScale = ContentScale.Crop
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (permissionGranted) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(AppSpacing.medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.small)
+                    ) {
+                        Text(if (permissionGranted) "👋 ✨" else "👋", style = MaterialTheme.typography.headlineSmall)
+                        Text(
+                            text = stringResource(
+                                if (permissionGranted) R.string.permission_mood_granted
+                                else R.string.permission_mood_denied
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (permissionGranted) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
                 // Cleaner explanation card
                 Card(
                     modifier = Modifier.fillMaxWidth(),

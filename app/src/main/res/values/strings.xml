@@ -25,6 +25,8 @@
   <string name="startup_description">Manage anime wallpapers for your home and lock screens. Change them on a schedule or right when you unlock your phone.</string>
   <string name="magen_logo_description">MG logo</string>
   <string name="alisha_description">Alisha chibi mascot</string>
+  <string name="permission_mood_granted">Thanks! Alisha is happy and ready to help with your wallpapers.</string>
+  <string name="permission_mood_denied">Alisha looks a little sad. You can continue, or allow notifications later.</string>
     <string name="continue_button">I\'m In</string>
   <string name="allow">Allow</string>
   <string name="privacy_policy">Privacy Policy</string>

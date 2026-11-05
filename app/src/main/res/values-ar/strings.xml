@@ -23,6 +23,8 @@
     <string name="startup_description">أدِر خلفيات الأنمي للشاشة الرئيسية وشاشة القفل، وغيّرها وفق جدول أو فور فتح قفل الهاتف.</string>
     <string name="magen_logo_description">شعار MG</string>
     <string name="alisha_description">شخصية اليشيا تشيبي</string>
+    <string name="permission_mood_granted">شكرًا لك! اليشيا سعيدة ومستعدة لمساعدتك في خلفياتك.</string>
+    <string name="permission_mood_denied">تبدو اليشيا حزينة قليلًا. يمكنك المتابعة أو السماح بالإشعارات لاحقًا.</string>
     <string name="continue_button">متابعة</string>
     <string name="allow">السماح</string>
     <string name="privacy_policy">سياسة الخصوصية</string>
