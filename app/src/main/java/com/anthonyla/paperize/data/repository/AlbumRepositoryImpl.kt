@@ -281,11 +281,36 @@ class AlbumRepositoryImpl @Inject constructor(
             val album = albumDao.getAlbumWithDetails(albumId).first() ?: return Result.Success(0)
             val folders = album.folders.map { it.toDomainModel() }
 
+            // SOFT validation: only treat a folder as invalid if BOTH the DocumentFile lookup
+            // fails AND the persistable URI permission is no longer held. A transient
+            // DocumentFile.exists()==false (removable storage unmount, provider quirk, OEM
+            // background restriction) must NOT cause permanent data deletion — the folder's
+            // wallpapers would be cascade-deleted and the user would lose their entire album.
+            //
+            // Persisted permission is the source of truth: if the app still holds
+            // takePersistableUriPermission for this URI, the user can still re-grant access
+            // via the system picker, so keep the folder row.
             val invalidFolderIds = folders.filter { folder ->
-                // Check if folder URI is still valid
                 val uri = Uri.parse(folder.uri)
                 val documentFile = DocumentFile.fromTreeUri(context, uri)
-                documentFile == null || !documentFile.exists() || !documentFile.canRead()
+                val documentBroken = documentFile == null || !documentFile.exists() || !documentFile.canRead()
+                if (!documentBroken) return@filter false
+                // DocumentFile says it's broken — check if we still hold the persistable
+                // permission. If yes, this is a transient failure: keep the folder.
+                val permissionHeld = runCatching {
+                    context.contentResolver.persistedUriPermissions.any {
+                        it.uri == uri && it.isReadPermission
+                    }
+                }.getOrDefault(false)
+                if (permissionHeld) {
+                    android.util.Log.w(
+                        "AlbumRepository",
+                        "Folder ${folder.name} (uri=$uri) is unreadable but persistable permission is held — keeping row (transient failure)"
+                    )
+                    false
+                } else {
+                    true
+                }
             }.map { it.id }
 
             if (invalidFolderIds.isNotEmpty()) {

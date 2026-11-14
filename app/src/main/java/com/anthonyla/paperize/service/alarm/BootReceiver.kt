@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -36,20 +37,25 @@ class BootReceiver : BroadcastReceiver() {
             intent.action == Intent.ACTION_TIMEZONE_CHANGED ||
             intent.action == "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
         ) {
-            Log.d(TAG, "Boot completed, rescheduling wallpaper changes")
+            Log.d(TAG, "Boot/event received (${intent.action}), rescheduling wallpaper changes")
 
             // Use goAsync() to extend receiver lifecycle for async work
-            // This prevents the system from killing the receiver before coroutine completes
             val pendingResult = goAsync()
 
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 try {
-                    wallpaperScheduler.reschedulePersistedSchedules()
-                    Log.d(TAG, "Wallpaper schedules restored successfully")
+                    // Bound to 8 seconds. goAsync() allows ~10s before ANR; reschedulePersistedSchedules()
+                    // performs DataStore reads + WorkManager queries that can be slow right after boot
+                    // when the system is still initializing services. If we time out, the receiver is
+                    // released cleanly and the user opening the app will trigger reschedule via
+                    // ProcessLifecycleOwner.onStart.
+                    withTimeoutOrNull(8_000L) {
+                        wallpaperScheduler.reschedulePersistedSchedules()
+                        Log.d(TAG, "Wallpaper schedules restored successfully")
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error rescheduling wallpaper changes", e)
                 } finally {
-                    // Must call finish() to release the async operation
                     pendingResult.finish()
                 }
             }

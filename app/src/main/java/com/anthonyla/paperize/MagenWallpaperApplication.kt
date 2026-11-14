@@ -95,9 +95,10 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
      * ACTION_SCREEN_ON fires when the screen turns on (before unlock) — added as a secondary
      * trigger because some OEMs deliver one but not the other.
      *
-     * RECEIVER_EXPORTED is required on API 34+ for receivers that accept system broadcasts;
-     * it is safe here because both actions are protected system broadcasts that no third-party
-     * app can send.
+     * RECEIVER_NOT_EXPORTED is used because both actions are protected system broadcasts —
+     * only the system can send them, so there is no need to accept broadcasts from other apps.
+     * On API 34+ you MUST specify either EXPORTED or NOT_EXPORTED for any dynamic receiver;
+     * NOT_EXPORTED is the safer choice and still receives system broadcasts.
      */
     private fun registerUnlockReceiver() {
         if (unlockReceiver != null) return
@@ -126,7 +127,7 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
             this,
             unlockReceiver,
             filter,
-            ContextCompat.RECEIVER_EXPORTED
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
     }
 

@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -37,39 +38,50 @@ class WallpaperAlarmReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                val settings = settingsRepository.getScheduleSettings()
-                val mode = settingsRepository.getWallpaperMode()
-                if (!settings.enableChanger) return@launch
+                // Bound the receiver's background work to 8 seconds. BroadcastReceiver.goAsync()
+                // gives ~10 seconds before the system ANR-kills the process; DataStore cold-start
+                // or WorkManager queries can be slow on the first launch after OEM task-kill.
+                // If we time out, pendingResult.finish() is still called in finally so the
+                // receiver is released cleanly, and the next alarm (rescheduled below) will retry.
+                withTimeoutOrNull(8_000L) {
+                    val settings = settingsRepository.getScheduleSettings()
+                    val mode = settingsRepository.getWallpaperMode()
+                    if (!settings.enableChanger) return@withTimeoutOrNull
 
-                val screenType = intent.getStringExtra(Constants.EXTRA_SCREEN_TYPE)
-                    ?.let(ScreenType::fromString)
-                    ?: ScreenType.HOME
-                val interval = intent.getIntExtra(
-                    Constants.EXTRA_INTERVAL_MINUTES,
-                    Constants.DEFAULT_INTERVAL_MINUTES
-                ).coerceAtLeast(Constants.MIN_INTERVAL_MINUTES)
+                    val screenType = intent.getStringExtra(Constants.EXTRA_SCREEN_TYPE)
+                        ?.let(ScreenType::fromString)
+                        ?: ScreenType.HOME
+                    val interval = intent.getIntExtra(
+                        Constants.EXTRA_INTERVAL_MINUTES,
+                        Constants.DEFAULT_INTERVAL_MINUTES
+                    ).coerceAtLeast(Constants.MIN_INTERVAL_MINUTES)
 
-                val active = when {
-                    mode == WallpaperMode.LIVE ->
-                        settings.liveAlbumId != null && settings.liveIntervalMinutes > 0
-                    screenType == ScreenType.HOME ->
-                        settings.homeEnabled && settings.homeAlbumId != null
-                    screenType == ScreenType.LOCK ->
-                        settings.lockEnabled && settings.lockAlbumId != null
-                    screenType == ScreenType.BOTH ->
-                        (settings.homeEnabled && settings.homeAlbumId != null) ||
-                            (settings.lockEnabled && settings.lockAlbumId != null)
-                    else -> false
+                    val active = when {
+                        mode == WallpaperMode.LIVE ->
+                            settings.liveAlbumId != null && settings.liveIntervalMinutes > 0
+                        screenType == ScreenType.HOME ->
+                            settings.homeEnabled && settings.homeAlbumId != null
+                        screenType == ScreenType.LOCK ->
+                            settings.lockEnabled && settings.lockAlbumId != null
+                        screenType == ScreenType.BOTH ->
+                            (settings.homeEnabled && settings.homeAlbumId != null) ||
+                                (settings.lockEnabled && settings.lockAlbumId != null)
+                        else -> false
+                    }
+                    if (!active) return@withTimeoutOrNull
+
+                    schedule(context, screenType, interval)
+                    val serviceIntent = Intent(context, WallpaperChangeService::class.java).apply {
+                        action = WallpaperChangeService.ACTION_CHANGE_WALLPAPER_AUTO
+                        putExtra(Constants.EXTRA_SCREEN_TYPE, screenType.name)
+                    }
+                    runCatching {
+                        ContextCompat.startForegroundService(context, serviceIntent)
+                    }.onFailure { e ->
+                        Log.e(TAG, "Failed to start foreground service from alarm (Android 12+ FGS restriction?)", e)
+                    }
+                    Log.d(TAG, "Started wallpaper service from exact alarm for $screenType")
                 }
-                if (!active) return@launch
-
-                schedule(context, screenType, interval)
-                val serviceIntent = Intent(context, WallpaperChangeService::class.java).apply {
-                    action = WallpaperChangeService.ACTION_CHANGE_WALLPAPER_AUTO
-                    putExtra(Constants.EXTRA_SCREEN_TYPE, screenType.name)
-                }
-                ContextCompat.startForegroundService(context, serviceIntent)
-                Log.d(TAG, "Started wallpaper service from exact alarm for $screenType")
             } catch (e: Exception) {
                 Log.e(TAG, "Exact wallpaper alarm failed", e)
             } finally {

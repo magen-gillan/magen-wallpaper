@@ -118,31 +118,24 @@ class WallpaperRepositoryImpl @Inject constructor(
 
     override suspend fun validateAndRemoveInvalidWallpapers(albumId: String): Result<Int> {
         return try {
-            var totalRemoved = 0
-            val batchSize = 100 // Process in smaller batches to avoid memory spikes
-            var offset = 0
-
-            while (true) {
-                val wallpapers = wallpaperDao.getWallpapersByAlbumPaged(albumId, batchSize, offset)
-                if (wallpapers.isEmpty()) break
-
-                val invalidUris = wallpapers
-                    .filter { !it.uri.toUri().isValid(contentResolver) }
-                    .map { it.uri }
-                    .toSet()
-
-                if (invalidUris.isNotEmpty()) {
-                    wallpaperDao.deleteWallpapersByUris(invalidUris.toList())
-                    totalRemoved += invalidUris.size
-                    // Advance offset only by the number of valid items in this batch,
-                    // so valid items already checked are not re-fetched next iteration
-                    offset += wallpapers.size - invalidUris.size
-                } else {
-                    offset += batchSize
-                }
-            }
-
-            Result.Success(totalRemoved)
+            // SOFT validation: do NOT delete wallpapers just because their URI is temporarily
+            // unreadable. SAF permission revocation, removable storage unmount, or provider
+            // quirks can make every URI in an album return isValid()==false in a single run —
+            // deleting them all would wipe the user's entire album permanently.
+            //
+            // Instead, this method is now a no-op that returns 0. Folder-level validation
+            // (see AlbumRepositoryImpl.validateAndRemoveInvalidFolders) handles the case where
+            // a whole folder is genuinely gone (persistable permission revoked). Individual
+            // wallpaper URIs inside a valid folder are reconciled by AlbumRefreshWorker when
+            // it rescans the folder contents.
+            //
+            // The method signature is preserved for backward compatibility with callers that
+            // may still invoke it.
+            android.util.Log.d(
+                "WallpaperRepository",
+                "validateAndRemoveInvalidWallpapers(albumId=$albumId) is a no-op (soft validation) — returning 0"
+            )
+            Result.Success(0)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -250,14 +243,17 @@ class WallpaperRepositoryImpl @Inject constructor(
     override suspend fun clearQueuesForAlbum(albumId: String): Result<Unit> {
         return try {
             wallpaperQueueDao.clearAllQueues(albumId)
-            
-            // Prune mutexes for this album to prevent memory leak
-            // Keys are either albumId (shuffled) or $albumId:$screenType (sequential)
-            // Use exact match or prefix with colon to avoid false positives (e.g., album1 vs album10)
-            queueRebuildMutexes.keys.filter { it == albumId || it.startsWith("$albumId:") }.forEach { 
-                queueRebuildMutexes.remove(it)
-            }
-            
+
+            // NOTE: Do NOT prune queueRebuildMutexes entries here. Removing a mutex from the map
+            // while another coroutine holds a lock on it (e.g., mid-buildWallpaperQueue) breaks
+            // the serialization invariant: a third coroutine that arrives afterwards will get a
+            // NEW mutex from computeIfAbsent and proceed without waiting, allowing two concurrent
+            // queue builds for the same album/screen to interleave and corrupt the queue.
+            //
+            // The mutex map is keyed by albumId:screenType (a small, bounded set — at most a few
+            // albums × 4 screen types) so the memory "leak" from keeping stale entries is
+            // negligible (a few Mutex objects per album). Correctness >> a few hundred bytes.
+
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

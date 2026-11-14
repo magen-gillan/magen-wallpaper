@@ -264,23 +264,12 @@ class WallpaperScheduler @Inject constructor(
     }
 
     /**
-     * Enqueue one serialized change after a screen lock/unlock event.
+     * NOTE: The previous `enqueueScreenEventChange()` method was dead code — the unlock path
+     * now goes through [WallpaperChangeService] directly (manifest ScreenEventReceiver +
+     * dynamic receiver in Application → startForegroundService with ACTION_CHANGE_WALLPAPER_FAST).
+     * It has been removed to avoid confusion. If a WorkManager-based unlock path is needed in
+     * the future, re-add it here and wire it into the receivers.
      */
-    fun enqueueScreenEventChange() {
-        val inputData = Data.Builder()
-            .putString(Constants.EXTRA_SCREEN_TYPE, ScreenType.BOTH.name)
-            .build()
-        val workRequest = androidx.work.OneTimeWorkRequestBuilder<WallpaperChangeWorker>()
-            .setInputData(inputData)
-            .addTag(Constants.WORK_TAG_SCREEN_EVENT)
-            .build()
-        workManager.enqueueUniqueWork(
-            Constants.WORK_NAME_SCREEN_EVENT,
-            androidx.work.ExistingWorkPolicy.APPEND_OR_REPLACE,
-            workRequest
-        )
-        Log.d(TAG, "Enqueued wallpaper change for screen event")
-    }
 
     /**
      * Cancel wallpaper change schedule for specific screen

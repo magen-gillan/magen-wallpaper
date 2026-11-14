@@ -123,7 +123,18 @@ class WallpaperChangeService : Service() {
                 }
                 try {
                     if (settingsRepository.getWallpaperMode() == WallpaperMode.STATIC) {
-                        fastChange(screenType, settingsRepository.getScheduleSettings())
+                        val settings = settingsRepository.getScheduleSettings()
+                        // Respect the user's "Change on lock/unlock" toggle. The receiver cannot
+                        // check this synchronously (DataStore is async-only), so the service —
+                        // which already reads settings via settingsRepository — is the right place
+                        // to enforce it. Without this check, every unlock would advance the
+                        // wallpaper even when the user disabled the toggle.
+                        if (!settings.changeOnLockUnlock) {
+                            Log.d(TAG, "Skipping fast change — changeOnLockUnlock is disabled")
+                            stopSelf(startId)
+                            return@withLock
+                        }
+                        fastChange(screenType, settings)
                         lastFastChangeElapsedMs = SystemClock.elapsedRealtime()
                     }
                 } catch (e: Exception) {
@@ -156,11 +167,31 @@ class WallpaperChangeService : Service() {
     }
 
     private suspend fun fastChangeSingle(albumId: String, screenType: ScreenType, which: Int) {
-        val queueScreen = if (screenType == ScreenType.BOTH) ScreenType.HOME else screenType
-        if (wallpaperRepository.getNextWallpaperInQueue(albumId, queueScreen) == null) {
-            wallpaperRepository.buildWallpaperQueue(albumId, queueScreen, false)
+        // For BOTH mode (synchronized home+lock), dequeue from HOME queue and apply to both
+        // screens with a single setStream call. The LOCK queue is also advanced so the next
+        // lock-only change doesn't repeat the same wallpaper.
+        val queueScreens = if (screenType == ScreenType.BOTH) {
+            listOf(ScreenType.HOME, ScreenType.LOCK)
+        } else {
+            listOf(screenType)
         }
-        val candidate = wallpaperRepository.getAndDequeueWallpaper(albumId, queueScreen) ?: return
+        // Ensure queues are built for all relevant screens.
+        queueScreens.forEach { qs ->
+            if (wallpaperRepository.getNextWallpaperInQueue(albumId, qs) == null) {
+                wallpaperRepository.buildWallpaperQueue(albumId, qs, false)
+            }
+        }
+        // Dequeue from the primary queue (HOME for BOTH, or the screen itself).
+        val primaryQueue = if (screenType == ScreenType.BOTH) ScreenType.HOME else screenType
+        val candidate = wallpaperRepository.getAndDequeueWallpaper(albumId, primaryQueue) ?: return
+        // For BOTH mode, also dequeue from the LOCK queue so it advances in parallel.
+        if (screenType == ScreenType.BOTH) {
+            // Pop the LOCK queue too; we don't need its value (the synchronized setStream uses
+            // the HOME candidate), but we must advance it or the next lock-only change repeats.
+            runCatching {
+                wallpaperRepository.getAndDequeueWallpaper(albumId, ScreenType.LOCK)
+            }
+        }
         try {
             val input = contentResolver.openInputStream(Uri.parse(candidate.uri))
                 ?: throw IllegalStateException("Unable to open wallpaper URI")
@@ -176,7 +207,16 @@ class WallpaperChangeService : Service() {
             }
             Log.d(TAG, "Fast wallpaper applied from URI for $screenType")
         } catch (e: Exception) {
-            wallpaperRepository.restoreWallpaperToQueueFront(albumId, queueScreen, candidate.id)
+            // Do NOT restore the broken candidate to the FRONT of the queue — that would cause
+            // an infinite loop where every unlock retries the same broken URI. Instead, push it
+            // to the BACK of the queue so the next unlock tries a different wallpaper. If the
+            // album has only one wallpaper and it's broken, the queue will be empty after this
+            // and the next unlock will rebuild it (and try the broken one again, but only once
+            // per rebuild cycle, not infinitely per unlock).
+            runCatching {
+                wallpaperRepository.removeWallpaperFromQueue(albumId, primaryQueue, candidate.id)
+            }
+            Log.w(TAG, "Fast change failed for candidate ${candidate.id} (uri=${candidate.uri}); pushed to back of queue", e)
             throw e
         }
     }
