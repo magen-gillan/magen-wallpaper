@@ -12,7 +12,7 @@
 <p align="center"><em>Hello! I’m Alisha. Choose your favorite wallpapers and let me change them automatically on your phone.</em></p>
 
 <p align="center">
-  <a href="https://github.com/magen-gillan/magen-wallpaper/releases/download/v4.0.9/magen-wallpaper-v4.0.9.apk"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_%D8%AA%D8%AD%D9%85%D9%8A%D9%84_%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82-00C853?style=for-the-badge&logo=android&logoColor=white" alt="تحميل آخر إصدار"></a>
+  <a href="https://github.com/magen-gillan/magen-wallpaper/releases/latest/download/latest.apk"><img src="docs/download_button.svg" width="560" alt="تحميل أحدث نسخة | Download latest APK"></a>
 </p>
 
 <p align="center"><a href="https://github.com/magen-gillan/magen-wallpaper/releases/latest">عرض جميع الإصدارات | View all releases</a></p>
@@ -46,7 +46,7 @@
 
 ## التثبيت | Installation
 
-1. اضغط زر التحميل الأخضر أعلاه لتنزيل أحدث APK.
+1. اضغط زر التحميل الأخضر أعلاه لتنزيل أحدث APK. يُحدَّث الرابط تلقائيًا مع كل إصدار جديد.
 2. ثبّت الملف واسمح بالتثبيت من مصادر غير معروفة عند طلب Android.
 3. أضف مجلدات الصور، ثم اختر ألبومات الشاشة الرئيسية والقفل واضبط الجدولة.
 
