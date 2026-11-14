@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.anthonyla.paperize.R
@@ -53,6 +54,23 @@ class WallpaperChangeService : Service() {
     private lateinit var wallpaperManager: WallpaperManager
     private lateinit var notificationManager: NotificationManager
 
+    /**
+     * Elapsed-realtime timestamp of the most recent successful fast wallpaper apply.
+     *
+     * Used to deduplicate unlock-triggered changes: both the manifest-declared
+     * [com.anthonyla.paperize.service.alarm.ScreenEventReceiver] and the dynamic receiver
+     * registered in [com.anthonyla.paperize.MagenWallpaperApplication] can fire for the same
+     * unlock event (especially on Honor/Huawei where the OEM delays delivery), and without
+     * deduplication the wallpaper would advance two entries in the queue instead of one.
+     *
+     * The window is intentionally short (8 seconds) — long enough to absorb the OEM delivery
+     * window for a single unlock, short enough to not swallow two genuinely separate unlocks
+     * (which the user would expect to produce two distinct wallpaper changes).
+     */
+    @Volatile
+    private var lastFastChangeElapsedMs: Long = 0L
+    private val fastChangeDedupWindowMs = 8_000L
+
     override fun onCreate() {
         super.onCreate()
         wallpaperManager = WallpaperManager.getInstance(this)
@@ -91,9 +109,22 @@ class WallpaperChangeService : Service() {
     private fun handleFastChange(screenType: ScreenType, startId: Int) {
         serviceScope.launch {
             wallpaperChangeLock.mutex.withLock {
+                // Deduplicate unlock-triggered changes: if a fast change was applied within the
+                // last [fastChangeDedupWindowMs], skip this one. This happens when both the
+                // dynamic receiver (registered in Application) and the manifest-declared
+                // ScreenEventReceiver fire for the same unlock event, or when the OEM delivers
+                // ACTION_USER_PRESENT and ACTION_SCREEN_ON in quick succession.
+                val now = SystemClock.elapsedRealtime()
+                val sinceLast = now - lastFastChangeElapsedMs
+                if (lastFastChangeElapsedMs > 0 && sinceLast < fastChangeDedupWindowMs) {
+                    Log.d(TAG, "Skipping fast change — only ${sinceLast}ms since last apply (dedup window=${fastChangeDedupWindowMs}ms)")
+                    stopSelf(startId)
+                    return@withLock
+                }
                 try {
                     if (settingsRepository.getWallpaperMode() == WallpaperMode.STATIC) {
                         fastChange(screenType, settingsRepository.getScheduleSettings())
+                        lastFastChangeElapsedMs = SystemClock.elapsedRealtime()
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Fast wallpaper change failed", e)

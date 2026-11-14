@@ -102,13 +102,18 @@
 
         <!-- Unlock-triggered changes must survive process death. A manifest-declared
              receiver lets the system cold-start the process on ACTION_USER_PRESENT even
-             when the app was killed or frozen by aggressive OEM battery management. -->
+             when the app was killed or frozen by aggressive OEM battery management.
+             ACTION_SCREEN_ON is included as a secondary trigger because some OEMs
+             (Honor/Huawei/Xiaomi) deliver one but not the other. The dynamic receiver
+             registered in MagenWallpaperApplication handles the warm-path case where
+             the app process is still alive but the OEM blocks this manifest receiver. -->
         <receiver
             android:name=".service.alarm.ScreenEventReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.SCREEN_ON" />
             </intent-filter>
         </receiver>
 

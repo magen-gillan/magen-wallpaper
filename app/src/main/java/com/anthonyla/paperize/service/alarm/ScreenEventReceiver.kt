@@ -1,158 +1,55 @@
 package com.anthonyla.paperize.service.alarm
 
-import android.app.WallpaperManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.anthonyla.paperize.core.ScreenType
-import com.anthonyla.paperize.core.WallpaperMode
-import com.anthonyla.paperize.core.util.setStreamChecked
-import com.anthonyla.paperize.domain.model.ScheduleSettings
-import com.anthonyla.paperize.domain.repository.SettingsRepository
-import com.anthonyla.paperize.domain.repository.WallpaperRepository
-import com.anthonyla.paperize.service.WallpaperChangeLock
 import com.anthonyla.paperize.service.wallpaper.WallpaperChangeService
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
-import javax.inject.Inject
 
 /**
- * Handles USER_PRESENT without opening the Activity. The next source URI is applied directly
- * while the receiver is alive; the foreground service remains only as a fallback.
+ * Handles ACTION_USER_PRESENT (and ACTION_SCREEN_ON as a backup) by starting the
+ * [WallpaperChangeService] foreground service with [WallpaperChangeService.ACTION_CHANGE_WALLPAPER_FAST].
+ *
+ * This manifest-declared receiver is the COLD-START path: it fires after the OEM has killed the
+ * app process and the user unlocks the device. The system cold-starts the process just to deliver
+ * the broadcast, which lets the app apply the next wallpaper even when it wasn't running.
+ *
+ * The WARM path (app process already alive in the background) is handled by a DYNAMIC receiver
+ * registered in [com.anthonyla.paperize.MagenWallpaperApplication] — because Honor / Huawei /
+ * Xiaomi and similar OEMs frequently block manifest receivers from firing for apps in the
+ * background, even when the app process is still alive. The dynamic receiver catches those cases.
+ *
+ * Both paths start the same foreground service, and the service's deduplication logic (see
+ * [WallpaperChangeService.handleFastChange]) prevents double-applies when both receivers fire
+ * for the same unlock event.
+ *
+ * Note: the receiver itself does NOT do any Hilt injection or database access. It only starts
+ * the foreground service, which is a one-line operation that completes well within the
+ * BroadcastReceiver's 10-second goAsync window. The actual wallpaper apply happens in the
+ * service, which has its own lifecycle, Hilt injection, and coroutine scope.
  */
-@AndroidEntryPoint
 class ScreenEventReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var settingsRepository: SettingsRepository
-    @Inject lateinit var wallpaperRepository: WallpaperRepository
-    @Inject lateinit var wallpaperChangeLock: WallpaperChangeLock
-
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_USER_PRESENT) return
-
-        val pendingResult = goAsync()
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            try {
-                val settings = settingsRepository.getScheduleSettings()
-                val isStaticMode = settingsRepository.getWallpaperMode() == WallpaperMode.STATIC
-                if (isStaticMode && settings.changeOnLockUnlock) {
-                    val failedScreens = wallpaperChangeLock.mutex.withLock {
-                        applyImmediately(context, settings)
-                    }
-                    if (failedScreens.isNotEmpty()) {
-                        val fallbackTarget = if (
-                            failedScreens.contains(ScreenType.HOME) &&
-                            failedScreens.contains(ScreenType.LOCK)
-                        ) {
-                            ScreenType.BOTH
-                        } else {
-                            failedScreens.first()
-                        }
-                        startFallbackService(context, fallbackTarget)
-                    }
-                    Log.d(TAG, "Unlock wallpaper path failed screens=$failedScreens")
+        when (intent.action) {
+            Intent.ACTION_USER_PRESENT, Intent.ACTION_SCREEN_ON -> {
+                Log.d(TAG, "Received ${intent.action} — starting WallpaperChangeService")
+                val serviceIntent = Intent(context, WallpaperChangeService::class.java).apply {
+                    action = WallpaperChangeService.ACTION_CHANGE_WALLPAPER_FAST
+                    putExtra(WallpaperChangeService.EXTRA_SCREEN_TYPE, ScreenType.BOTH.name)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Unable to apply wallpaper after unlock", e)
-                runCatching { startFallbackService(context, ScreenType.BOTH) }
-            } finally {
-                pendingResult.finish()
-            }
-        }
-    }
-
-    private suspend fun applyImmediately(
-        context: Context,
-        settings: ScheduleSettings
-    ): Set<ScreenType> {
-        val homeAlbumId = settings.homeAlbumId.takeIf { settings.homeEnabled }
-        val lockAlbumId = settings.lockAlbumId.takeIf { settings.lockEnabled }
-        if (homeAlbumId == null && lockAlbumId == null) return emptySet()
-
-        val synchronized = homeAlbumId != null && homeAlbumId == lockAlbumId &&
-            !settings.separateSchedules
-        return if (synchronized) {
-            val changed = applyOne(
-                context = context,
-                albumId = homeAlbumId,
-                queueScreen = ScreenType.HOME,
-                completedScreens = listOf(ScreenType.HOME, ScreenType.LOCK),
-                which = WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
-                shuffle = settings.shuffleEnabled
-            )
-            if (changed) emptySet() else setOf(ScreenType.HOME, ScreenType.LOCK)
-        } else {
-            val failedScreens = linkedSetOf<ScreenType>()
-            homeAlbumId?.let {
-                if (!applyOne(
-                    context,
-                    it,
-                    ScreenType.HOME,
-                    listOf(ScreenType.HOME),
-                    WallpaperManager.FLAG_SYSTEM,
-                    settings.shuffleEnabled
-                )) {
-                    failedScreens += ScreenType.HOME
+                // No goAsync() needed — startForegroundService is a non-blocking call that returns
+                // immediately. The system starts the service asynchronously, and the service handles
+                // its own lifecycle (including acquiring the mutex and applying the wallpaper).
+                runCatching {
+                    ContextCompat.startForegroundService(context, serviceIntent)
+                }.onFailure { e ->
+                    Log.e(TAG, "Failed to start WallpaperChangeService from manifest receiver", e)
                 }
             }
-            lockAlbumId?.let {
-                if (!applyOne(
-                    context,
-                    it,
-                    ScreenType.LOCK,
-                    listOf(ScreenType.LOCK),
-                    WallpaperManager.FLAG_LOCK,
-                    settings.shuffleEnabled
-                )) {
-                    failedScreens += ScreenType.LOCK
-                }
-            }
-            failedScreens
         }
-    }
-
-    private suspend fun applyOne(
-        context: Context,
-        albumId: String,
-        queueScreen: ScreenType,
-        completedScreens: List<ScreenType>,
-        which: Int,
-        shuffle: Boolean
-    ): Boolean {
-        if (wallpaperRepository.getNextWallpaperInQueue(albumId, queueScreen) == null) {
-            wallpaperRepository.buildWallpaperQueue(albumId, queueScreen, shuffle)
-        }
-        val candidate = wallpaperRepository.getAndDequeueWallpaper(albumId, queueScreen)
-            ?: return false
-        return try {
-            val input = context.contentResolver.openInputStream(Uri.parse(candidate.uri))
-                ?: throw IllegalStateException("Unable to open wallpaper URI")
-            input.use { WallpaperManager.getInstance(context).setStreamChecked(it, which) }
-            completedScreens.forEach { screen ->
-                wallpaperRepository.setCurrentWallpaper(albumId, screen, candidate.id)
-                wallpaperRepository.removeWallpaperFromQueue(albumId, screen, candidate.id)
-            }
-            true
-        } catch (e: Exception) {
-            wallpaperRepository.restoreWallpaperToQueueFront(albumId, queueScreen, candidate.id)
-            Log.e(TAG, "Direct wallpaper application failed", e)
-            false
-        }
-    }
-
-    private fun startFallbackService(context: Context, screenType: ScreenType) {
-        val fallback = Intent(context, WallpaperChangeService::class.java).apply {
-            action = WallpaperChangeService.ACTION_CHANGE_WALLPAPER_FAST
-            putExtra(WallpaperChangeService.EXTRA_SCREEN_TYPE, screenType.name)
-        }
-        ContextCompat.startForegroundService(context, fallback)
     }
 
     private companion object {
