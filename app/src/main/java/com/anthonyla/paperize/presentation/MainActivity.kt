@@ -52,13 +52,13 @@ class MainActivity : ComponentActivity() {
             var settingsLoadedOnce by rememberSaveable { mutableStateOf(false) }
             val currentSettings = appSettingsState
 
-            // Update settingsLoadedOnce via a LaunchedEffect rather than during composition:
-            // writing to MutableState during composition is a side-effect Compose lint flags and
-            // can re-fire on every recomposition even though the value is idempotent here.
-            LaunchedEffect(currentSettings) {
-                if (currentSettings != null) {
-                    settingsLoadedOnce = true
-                }
+            // Mark settingsLoadedOnce as soon as DataStore emits a non-null AppSettings.
+            // This is intentionally a side-effect read during composition — the value is idempotent
+            // (false → true is a one-way transition) so re-firing on recomposition is harmless,
+            // and writing here (instead of inside a LaunchedEffect) means the NavigationGraph is
+            // rendered in the SAME frame the settings arrive, avoiding a blank frame on cold start.
+            if (currentSettings != null) {
+                settingsLoadedOnce = true
             }
 
 

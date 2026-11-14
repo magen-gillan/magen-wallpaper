@@ -68,6 +68,12 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.NoDisplay" />
 
+        <activity
+            android:name=".presentation.crash.CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:theme="@style/Theme.MagenWallpapers" />
+
         <service
             android:name=".service.wallpaper.WallpaperChangeService"
             android:enabled="true"

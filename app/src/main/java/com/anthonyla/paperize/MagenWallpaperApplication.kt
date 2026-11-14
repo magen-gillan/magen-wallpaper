@@ -10,6 +10,8 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.anthonyla.paperize.core.constants.Constants
 import com.anthonyla.paperize.core.util.DataResetManager
+import com.anthonyla.paperize.presentation.crash.CrashActivity
+import com.anthonyla.paperize.presentation.crash.GlobalExceptionHandler
 import com.anthonyla.paperize.service.worker.AlbumRefreshScheduler
 import com.anthonyla.paperize.service.worker.WallpaperScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +40,12 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
     private val lifecycleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
+        // Install the global crash handler FIRST, before any code that might throw — so even
+        // exceptions during Hilt injection or WorkManager bootstrap are surfaced to the user
+        // via CrashActivity instead of a silent crash-to-home.
+        Thread.setDefaultUncaughtExceptionHandler(
+            GlobalExceptionHandler(applicationContext, CrashActivity::class.java)
+        )
         super<Application>.onCreate()
 
         // Perform one-time data reset for major version upgrades (e.g., v3 -> v4)
