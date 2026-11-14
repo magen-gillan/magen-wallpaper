@@ -297,7 +297,7 @@ class WallpaperRepositoryImpl @Inject constructor(
     }
 
     override suspend fun isWallpaperInAlbum(albumId: String, uri: String): Boolean =
-        wallpaperDao.getWallpaperByUri(uri)?.let { it.albumId == albumId } ?: false
+        wallpaperDao.existsInAlbum(albumId, uri)
 
     override suspend fun getExistingWallpaperUris(albumId: String, folderId: String): Set<String> =
         wallpaperDao.getWallpaperUrisByAlbumAndFolder(albumId, folderId).toHashSet()

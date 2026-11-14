@@ -21,12 +21,12 @@ import com.anthonyla.paperize.core.util.AppLocaleManager
 import com.anthonyla.paperize.presentation.common.navigation.HomeRoute
 import com.anthonyla.paperize.presentation.common.navigation.NavigationGraph
 import com.anthonyla.paperize.presentation.common.navigation.StartupRoute
-import com.anthonyla.paperize.presentation.common.theme.Magen WallpaperTheme
+import com.anthonyla.paperize.presentation.common.theme.MagenWallpaperTheme
 import com.anthonyla.paperize.presentation.screens.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * Main activity for Magen Wallpaper
+ * Main activity for MagenWallpaper
  *
  * Single activity architecture with Jetpack Compose
  */
@@ -51,13 +51,18 @@ class MainActivity : ComponentActivity() {
             // Remember if we've ever loaded settings to prevent losing NavigationGraph during recreation
             var settingsLoadedOnce by rememberSaveable { mutableStateOf(false) }
             val currentSettings = appSettingsState
-            
-            if (currentSettings != null) {
-                settingsLoadedOnce = true
+
+            // Update settingsLoadedOnce via a LaunchedEffect rather than during composition:
+            // writing to MutableState during composition is a side-effect Compose lint flags and
+            // can re-fire on every recomposition even though the value is idempotent here.
+            LaunchedEffect(currentSettings) {
+                if (currentSettings != null) {
+                    settingsLoadedOnce = true
+                }
             }
 
 
-            Magen WallpaperTheme(
+            MagenWallpaperTheme(
                 darkMode = currentSettings?.darkMode ?: false,
                 dynamicTheming = currentSettings?.dynamicTheming ?: false
             ) {

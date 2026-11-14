@@ -14,7 +14,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.anthonyla.paperize.R
 import com.anthonyla.paperize.core.EmptyAlbumException
-import com.anthonyla.paperize.core.Result as Magen WallpaperResult
+import com.anthonyla.paperize.core.Result as MagenWallpaperResult
 import com.anthonyla.paperize.core.ScreenType
 import com.anthonyla.paperize.core.WallpaperMode
 import com.anthonyla.paperize.core.constants.Constants
@@ -229,7 +229,7 @@ class WallpaperChangeService : Service() {
         settings: ScheduleSettings
     ) {
         when (val result = changeWallpaperUseCase(albumId, ScreenType.HOME)) {
-            is Magen WallpaperResult.Success -> {
+            is MagenWallpaperResult.Success -> {
                 val prepared = result.data
                 val samePresentation =
                     settings.homeEffects == settings.lockEffects &&
@@ -258,7 +258,7 @@ class WallpaperChangeService : Service() {
                             prepared.wallpaperId
                         )
                     ) {
-                        is Magen WallpaperResult.Success -> {
+                        is MagenWallpaperResult.Success -> {
                             val lockBitmap = lockResult.data
                             try {
                                 wallpaperManager.setBitmapChecked(
@@ -272,13 +272,13 @@ class WallpaperChangeService : Service() {
                             }
                         }
 
-                        is Magen WallpaperResult.Error -> throw asException(lockResult.exception)
-                        Magen WallpaperResult.Loading -> error("Unexpected loading result")
+                        is MagenWallpaperResult.Error -> throw asException(lockResult.exception)
+                        MagenWallpaperResult.Loading -> error("Unexpected loading result")
                     }
                 }
             }
 
-            is Magen WallpaperResult.Error -> {
+            is MagenWallpaperResult.Error -> {
                 if (result.exception is EmptyAlbumException) {
                     handleEmptyAlbumError(ScreenType.BOTH)
                 } else {
@@ -286,7 +286,7 @@ class WallpaperChangeService : Service() {
                 }
             }
 
-            Magen WallpaperResult.Loading -> error("Unexpected loading result")
+            MagenWallpaperResult.Loading -> error("Unexpected loading result")
         }
     }
 
@@ -295,7 +295,7 @@ class WallpaperChangeService : Service() {
         screenType: ScreenType
     ) {
         when (val result = changeWallpaperUseCase(albumId, screenType)) {
-            is Magen WallpaperResult.Success -> {
+            is MagenWallpaperResult.Success -> {
                 val which = when (screenType) {
                     ScreenType.HOME -> WallpaperManager.FLAG_SYSTEM
                     ScreenType.LOCK -> WallpaperManager.FLAG_LOCK
@@ -305,7 +305,7 @@ class WallpaperChangeService : Service() {
                 Log.d(TAG, "$screenType wallpaper changed successfully")
             }
 
-            is Magen WallpaperResult.Error -> {
+            is MagenWallpaperResult.Error -> {
                 if (result.exception is EmptyAlbumException) {
                     handleEmptyAlbumError(screenType)
                 } else {
@@ -313,7 +313,7 @@ class WallpaperChangeService : Service() {
                 }
             }
 
-            Magen WallpaperResult.Loading -> error("Unexpected loading result")
+            MagenWallpaperResult.Loading -> error("Unexpected loading result")
         }
     }
 
@@ -383,7 +383,7 @@ class WallpaperChangeService : Service() {
         screenType: ScreenType
     ) {
         when (val result = reapplyEffectsUseCase(albumId, screenType)) {
-            is Magen WallpaperResult.Success -> {
+            is MagenWallpaperResult.Success -> {
                 val bitmap = result.data
                 try {
                     val which = if (screenType == ScreenType.HOME) {
@@ -398,12 +398,12 @@ class WallpaperChangeService : Service() {
                 }
             }
 
-            is Magen WallpaperResult.Error -> {
+            is MagenWallpaperResult.Error -> {
                 Log.w(TAG, "Reapply failed for $screenType; advancing queue", result.exception)
                 changeSingle(albumId, screenType)
             }
 
-            Magen WallpaperResult.Loading -> error("Unexpected loading result")
+            MagenWallpaperResult.Loading -> error("Unexpected loading result")
         }
     }
 

@@ -189,7 +189,7 @@ fun HomeScreen(
                     onClick = {
                         viewModel.dismissLiveWallpaperPrompt()
                         try {
-                            // Open live wallpaper chooser with Magen Wallpaper pre-selected
+                            // Open live wallpaper chooser with MagenWallpaper pre-selected
                             val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
                                 putExtra(
                                     WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,

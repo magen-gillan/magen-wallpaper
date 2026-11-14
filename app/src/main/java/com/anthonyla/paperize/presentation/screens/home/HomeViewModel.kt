@@ -10,7 +10,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import com.anthonyla.paperize.core.ScreenType
 import com.anthonyla.paperize.core.constants.Constants
-import com.anthonyla.paperize.core.util.isMagen WallpaperLiveWallpaperActive
+import com.anthonyla.paperize.core.util.isMagenWallpaperLiveWallpaperActive
 import com.anthonyla.paperize.core.util.generateId
 import com.anthonyla.paperize.core.util.scanFolderImages
 import com.anthonyla.paperize.core.util.getFileName
@@ -61,7 +61,7 @@ class HomeViewModel @Inject constructor(
     }
 
     init {
-        // Check if Magen Wallpaper live wallpaper was replaced/disabled on startup
+        // Check if MagenWallpaper live wallpaper was replaced/disabled on startup
         checkLiveWallpaperStatus()
     }
 
@@ -94,7 +94,7 @@ class HomeViewModel @Inject constructor(
         )
 
     /**
-     * URI of the wallpaper Magen Wallpaper last applied for the home / lock screen, for the in-app preview.
+     * URI of the wallpaper MagenWallpaper last applied for the home / lock screen, for the in-app preview.
      * Reading the source URI (rather than WallpaperManager.getDrawable) avoids the storage permission
      * the preview would otherwise need. Falls back to the BOTH-mode record when home/lock are synced.
      */
@@ -127,8 +127,8 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Check if Magen Wallpaper live wallpaper is still active on app startup.
-     * If the user was in LIVE mode with an album selected but Magen Wallpaper is no longer
+     * Check if MagenWallpaper live wallpaper is still active on app startup.
+     * If the user was in LIVE mode with an album selected but MagenWallpaper is no longer
      * the active live wallpaper (e.g., user switched to a different wallpaper),
      * clear the live album selection and disable the changer.
      */
@@ -142,11 +142,11 @@ class HomeViewModel @Inject constructor(
                 settings.liveAlbumId != null && 
                 settings.enableChanger) {
                 
-                val isActive = isMagen WallpaperLiveWallpaperActive(context)
-                Log.d(TAG, "Startup check: LIVE mode with album selected, isMagen WallpaperLiveWallpaperActive=$isActive")
+                val isActive = isMagenWallpaperLiveWallpaperActive(context)
+                Log.d(TAG, "Startup check: LIVE mode with album selected, isMagenWallpaperLiveWallpaperActive=$isActive")
                 
                 if (!isActive) {
-                    Log.w(TAG, "Magen Wallpaper live wallpaper was replaced/disabled - clearing live album selection")
+                    Log.w(TAG, "MagenWallpaper live wallpaper was replaced/disabled - clearing live album selection")
                     // Clear the live album selection and disable changer
                     settingsRepository.updateLiveAlbumId(null)
                     settingsRepository.updateEnableChanger(false)
@@ -407,10 +407,10 @@ class HomeViewModel @Inject constructor(
                     }
                     scheduleAlarms(updated, onlyIfNotScheduled)
 
-                    // Show live wallpaper selection prompt if in LIVE mode and Magen Wallpaper is NOT already active
+                    // Show live wallpaper selection prompt if in LIVE mode and MagenWallpaper is NOT already active
                     if (wallpaperMode.value == com.anthonyla.paperize.core.WallpaperMode.LIVE) {
-                        val isActive = isMagen WallpaperLiveWallpaperActive(context)
-                        Log.d(TAG, "toggleWallpaperChanger: LIVE mode, isMagen WallpaperLiveWallpaperActive=$isActive")
+                        val isActive = isMagenWallpaperLiveWallpaperActive(context)
+                        Log.d(TAG, "toggleWallpaperChanger: LIVE mode, isMagenWallpaperLiveWallpaperActive=$isActive")
                         if (!isActive) {
                             _showLiveWallpaperPrompt.value = true
                         }
@@ -500,11 +500,11 @@ class HomeViewModel @Inject constructor(
             if (validated.enableChanger && hasRequiredAlbums && schedulingChanged) {
                 scheduleAlarms(validated)
 
-                // Show live wallpaper selection prompt if in LIVE mode, changer was just enabled, and Magen Wallpaper is NOT already active
+                // Show live wallpaper selection prompt if in LIVE mode, changer was just enabled, and MagenWallpaper is NOT already active
                 if (wallpaperMode.value == com.anthonyla.paperize.core.WallpaperMode.LIVE &&
                     !currentSettings.enableChanger && validated.enableChanger) {
-                    val isActive = isMagen WallpaperLiveWallpaperActive(context)
-                    Log.d(TAG, "updateScheduleSettings: LIVE mode, changer just enabled, isMagen WallpaperLiveWallpaperActive=$isActive")
+                    val isActive = isMagenWallpaperLiveWallpaperActive(context)
+                    Log.d(TAG, "updateScheduleSettings: LIVE mode, changer just enabled, isMagenWallpaperLiveWallpaperActive=$isActive")
                     if (!isActive) {
                         _showLiveWallpaperPrompt.value = true
                     }

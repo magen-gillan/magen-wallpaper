@@ -1,8 +1,10 @@
 package com.anthonyla.paperize.presentation.screens.album_view
 
+import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -109,16 +111,23 @@ fun AlbumViewScreen(
     }
 
     // Image picker
+    // ActivityResultContracts.OpenMultipleDocuments does NOT set FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+    // on its launch intent, so a follow-up takePersistableUriPermission throws SecurityException and
+    // the wallpaper service cannot reopen the URIs after process death. Use a custom contract that
+    // requests the persistable flag on ACTION_OPEN_DOCUMENT, then persist READ only (some providers
+    // reject WRITE persistable, which would silently leave no grant at all).
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments()
+        contract = OpenMultipleDocumentsPersistable()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
-            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             uris.forEach { uri ->
                 try {
-                    context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
                 } catch (_: Exception) {
-                    // Handle permission failure
+                    // Permission already persisted or provider refused — best effort.
                 }
             }
             viewModel.addWallpapers(uris.map { it.toString() })
@@ -130,7 +139,9 @@ fun AlbumViewScreen(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
         uri?.let {
-            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            // OpenDocumentTree DOES grant persistable permission; request READ only because the app
+            // never writes to the picked folder, and some read-only providers reject WRITE.
+            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
             try {
                 context.contentResolver.takePersistableUriPermission(it, takeFlags)
                 viewModel.addFolder(it.toString())
@@ -273,5 +284,39 @@ fun AlbumViewScreen(
                 }
             }
         )
+    }
+}
+
+/**
+ * Custom [ActivityResultContract] that mirrors [ActivityResultContracts.OpenMultipleDocuments] but
+ * adds [Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION] to the launch intent. Without this flag,
+ * [android.content.ContentResolver.takePersistableUriPermission] throws [SecurityException] and the
+ * picked image URIs cannot be reopened after process death — which would silently break wallpaper
+ * rotation once Android froze or recycled the app.
+ *
+ * The persisted grant is requested as READ only at the call site (see [imagePickerLauncher]) to
+ * avoid being rejected outright by read-only providers when WRITE is also requested.
+ */
+private class OpenMultipleDocumentsPersistable :
+    ActivityResultContract<Array<String>, List<@JvmSuppressWildcards Uri>>() {
+
+    override fun createIntent(context: Context, input: Array<String>): Intent {
+        return Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("*/*")
+            .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            .putExtra(Intent.EXTRA_MIME_TYPES, input)
+            .addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+    }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): List<Uri> {
+        return intent?.let {
+            val clipData = it.clipData
+            if (clipData != null) {
+                (0 until clipData.itemCount).mapNotNull { i -> clipData.getItemAt(i).uri }
+            } else {
+                listOfNotNull(it.data)
+            }
+        } ?: emptyList()
     }
 }

@@ -98,7 +98,7 @@ private val DarkColors = darkColorScheme(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun Magen WallpaperTheme(
+fun MagenWallpaperTheme(
     darkMode: Boolean?,
     dynamicTheming: Boolean,
     content: @Composable () -> Unit

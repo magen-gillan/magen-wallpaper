@@ -959,14 +959,14 @@ fun Uri.detectMediaType(context: Context): WallpaperMediaType? {
 }
 
 /**
- * Check if Magen Wallpaper live wallpaper is currently active/selected
- * Returns true if the Magen Wallpaper live wallpaper service is the current wallpaper
+ * Check if MagenWallpaper live wallpaper is currently active/selected
+ * Returns true if the MagenWallpaper live wallpaper service is the current wallpaper
  */
-fun isMagen WallpaperLiveWallpaperActive(context: Context): Boolean {
+fun isMagenWallpaperLiveWallpaperActive(context: Context): Boolean {
     return try {
         // If we are checking from within the service itself (e.g. preview mode), we are active
         if (context is com.anthonyla.paperize.service.livewallpaper.MagenLiveWallpaperService) {
-            Log.d(TAG, "isMagen WallpaperLiveWallpaperActive: called from service context, returning true")
+            Log.d(TAG, "isMagenWallpaperLiveWallpaperActive: called from service context, returning true")
             return true
         }
 
@@ -975,19 +975,19 @@ fun isMagen WallpaperLiveWallpaperActive(context: Context): Boolean {
 
         // If wallpaperInfo is null, user has a static wallpaper (not a live wallpaper)
         if (wallpaperInfo == null) {
-            Log.d(TAG, "isMagen WallpaperLiveWallpaperActive: wallpaperInfo is null (static wallpaper), returning false")
+            Log.d(TAG, "isMagenWallpaperLiveWallpaperActive: wallpaperInfo is null (static wallpaper), returning false")
             return false
         }
 
-        // Check if the service component matches Magen Wallpaper live wallpaper
+        // Check if the service component matches MagenWallpaper live wallpaper
         val expectedComponent = android.content.ComponentName(
             context.packageName,
             "com.anthonyla.paperize.service.livewallpaper.MagenLiveWallpaperService"
         )
-        val isMagen Wallpaper = wallpaperInfo.component == expectedComponent
+        val isMagenWallpaper = wallpaperInfo.component == expectedComponent
 
-        Log.d(TAG, "isMagen WallpaperLiveWallpaperActive: current=${wallpaperInfo.component}, expected=$expectedComponent, match=$isMagen Wallpaper")
-        isMagen Wallpaper
+        Log.d(TAG, "isMagenWallpaperLiveWallpaperActive: current=${wallpaperInfo.component}, expected=$expectedComponent, match=$isMagenWallpaper")
+        isMagenWallpaper
     } catch (e: Exception) {
         Log.e(TAG, "Error checking live wallpaper status", e)
         false

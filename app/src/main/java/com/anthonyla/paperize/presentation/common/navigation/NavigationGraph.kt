@@ -26,7 +26,7 @@ import com.anthonyla.paperize.presentation.screens.welcome.WelcomeScreen
 import com.anthonyla.paperize.presentation.screens.wallpaper_view.WallpaperViewScreen
 
 /**
- * Navigation graph for Magen Wallpaper
+ * Navigation graph for MagenWallpaper
  */
 @Composable
 fun NavigationGraph(
@@ -108,8 +108,9 @@ fun NavigationGraph(
             exitTransition = exitForward,
             popEnterTransition = enterBackward,
             popExitTransition = exitBackward
-        ) { backStackEntry ->
-            backStackEntry.toRoute<AlbumRoute>()
+        ) { _ ->
+            // AlbumViewScreen reads its arguments via its hiltViewModel's SavedStateHandle,
+            // so decoding the route here would be dead work.
             AlbumViewScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToFolder = { folderId ->
@@ -127,8 +128,8 @@ fun NavigationGraph(
             exitTransition = exitForward,
             popEnterTransition = enterBackward,
             popExitTransition = exitBackward
-        ) { backStackEntry ->
-            backStackEntry.toRoute<SortRoute>()
+        ) { _ ->
+            // SortViewScreen reads its arguments via its hiltViewModel's SavedStateHandle.
             SortViewScreen(
                 onSaveClick = { navController.popBackStack() },
                 onBackClick = { navController.popBackStack() }
@@ -141,8 +142,8 @@ fun NavigationGraph(
             exitTransition = exitForward,
             popEnterTransition = enterBackward,
             popExitTransition = exitBackward
-        ) { backStackEntry ->
-            backStackEntry.toRoute<FolderRoute>()
+        ) { _ ->
+            // FolderViewScreen reads its arguments via its hiltViewModel's SavedStateHandle.
             FolderViewScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToWallpaperView = { wallpaperUri, wallpaperName ->

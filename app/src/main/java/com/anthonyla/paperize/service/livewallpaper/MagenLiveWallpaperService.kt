@@ -50,7 +50,7 @@ import com.anthonyla.paperize.R
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
-interface Magen WallpaperLiveWallpaperEntryPoint {
+interface MagenWallpaperLiveWallpaperEntryPoint {
     fun settingsRepository(): SettingsRepository
     fun wallpaperRepository(): WallpaperRepository
 }
@@ -59,7 +59,7 @@ interface Magen WallpaperLiveWallpaperEntryPoint {
 class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
 
     companion object {
-        private const val TAG = "Magen WallpaperLiveWallpaper"
+        private const val TAG = "MagenWallpaperLiveWallpaper"
     }
 
     private val lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
@@ -78,10 +78,10 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
     }
 
     override fun onCreateEngine(): Engine {
-        return Magen WallpaperLiveWallpaperEngine()
+        return MagenWallpaperLiveWallpaperEngine()
     }
 
-    inner class Magen WallpaperLiveWallpaperEngine : GLEngine(),
+    inner class MagenWallpaperLiveWallpaperEngine : GLEngine(),
         LifecycleOwner,
         SavedStateRegistryOwner,
         MagenRenderController.Callbacks,
@@ -149,13 +149,13 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
 
             val entryPoint = EntryPointAccessors.fromApplication(
                 applicationContext,
-                Magen WallpaperLiveWallpaperEntryPoint::class.java
+                MagenWallpaperLiveWallpaperEntryPoint::class.java
             )
             settingsRepository = entryPoint.settingsRepository()
             wallpaperRepository = entryPoint.wallpaperRepository()
 
             renderer = MagenWallpaperRenderer(applicationContext, this)
-            renderController = object : MagenRenderController(renderer, this@Magen WallpaperLiveWallpaperEngine, engineScope) {
+            renderController = object : MagenRenderController(renderer, this@MagenWallpaperLiveWallpaperEngine, engineScope) {
                 override suspend fun openDownloadedCurrentArtwork(): ImageLoader = withContext(Dispatchers.IO) {
                     val mode = settingsRepository.getWallpaperMode()
                     val settings = settingsRepository.getScheduleSettings()
@@ -217,17 +217,21 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                         return@withContext EmptyImageLoader
                     }
 
-                    currentWallpaper = wallpaper
-
                     // Peek at queue to see if it needs refilling (not dequeuing, just checking)
                     val nextInQueue = wallpaperRepository.getNextWallpaperInQueue(albumId, ScreenType.LIVE)
                     if (nextInQueue == null) {
                         wallpaperRepository.buildWallpaperQueue(albumId, ScreenType.LIVE, settings.shuffleEnabled)
                     }
 
+                    // Build the ImageLoader first; only update currentWallpaper if construction
+                    // succeeds. If we set currentWallpaper before the try and the loader throws,
+                    // a later scaling/setting change would re-queue a broken wallpaper as if it
+                    // were the live current artwork.
                     try {
                         val uri = wallpaper.uri.toUri()
-                        ContentUriImageLoader(contentResolver, uri, settings.liveScalingType)
+                        val loader = ContentUriImageLoader(contentResolver, uri, settings.liveScalingType)
+                        currentWallpaper = wallpaper
+                        loader
                     } catch (e: Exception) {
                         Log.e(TAG, "Error creating image loader", e)
                         EmptyImageLoader
@@ -387,9 +391,15 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                 Log.e(TAG, "Error unregistering screen-off receiver", e)
             }
 
-            // Cleanup renderer resources on GL thread
-            queueEvent {
-                renderer.destroy()
+            // The GL thread has already been asked to exit in onSurfaceDestroyed() by the time
+            // onDestroy() runs, so queueEvent { renderer.destroy() } is a no-op and would leak the
+            // renderer's coroutine scope, bitmaps, and GLPicture references. Instead, run the
+            // non-GL cleanup synchronously here; EGL teardown in super.onSurfaceDestroyed() has
+            // already freed the GPU objects.
+            try {
+                renderer.onEngineDestroyed()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error cleaning renderer resources", e)
             }
 
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)

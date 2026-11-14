@@ -6,7 +6,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.room.withTransaction
 import com.anthonyla.paperize.core.Result
 import com.anthonyla.paperize.core.util.generateId
-import com.anthonyla.paperize.data.database.Magen WallpaperDatabase
+import com.anthonyla.paperize.data.database.MagenWallpaperDatabase
 import com.anthonyla.paperize.data.database.dao.AlbumDao
 import com.anthonyla.paperize.data.database.dao.FolderDao
 import com.anthonyla.paperize.data.database.dao.WallpaperDao
@@ -36,7 +36,7 @@ import javax.inject.Singleton
 @Singleton
 class AlbumRepositoryImpl @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val database: Magen WallpaperDatabase,
+    private val database: MagenWallpaperDatabase,
     private val albumDao: AlbumDao,
     private val wallpaperDao: WallpaperDao,
     private val folderDao: FolderDao,
@@ -229,9 +229,12 @@ class AlbumRepositoryImpl @Inject constructor(
                 albumDao.updateAlbumModifiedTime(albumId, System.currentTimeMillis())
 
                 // Refresh cover if any deleted wallpaper was the cover
-                // (we check by querying the album cover to see if it still exists)
+                // (we check whether the cover URI still exists in *this* album — using the
+                // unscoped getWallpaperByUri here would return true even when the cover was
+                // deleted from this album but the same URI exists in another album, leaving a
+                // stale coverUri.)
                 if (currentCoverUri != null) {
-                    val coverStillExists = wallpaperDao.getWallpaperByUri(currentCoverUri) != null
+                    val coverStillExists = wallpaperDao.existsInAlbum(albumId, currentCoverUri)
                     if (!coverStillExists) {
                         updateAlbumCoverIfNeeded(albumId)
                     }

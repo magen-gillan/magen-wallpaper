@@ -63,6 +63,17 @@ interface WallpaperDao {
     suspend fun getWallpaperByUri(uri: String): WallpaperEntity?
 
     /**
+     * Check whether a wallpaper with the given URI exists in a specific album.
+     *
+     * [getWallpaperByUri] is intentionally NOT scoped to albumId — the same URI can legitimately
+     * appear in multiple albums (e.g. the user added the same image to two albums). Using
+     * [getWallpaperByUri] for duplicate detection or "cover still exists" checks returns the
+     * wrong answer when the URI exists in another album but not in the album being checked.
+     */
+    @Query("SELECT 1 FROM wallpapers WHERE albumId = :albumId AND uri = :uri LIMIT 1")
+    suspend fun existsInAlbum(albumId: String, uri: String): Boolean
+
+    /**
      * Insert wallpaper
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

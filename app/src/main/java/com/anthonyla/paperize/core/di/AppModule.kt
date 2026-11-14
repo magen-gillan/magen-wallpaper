@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import com.anthonyla.paperize.core.constants.Constants
-import com.anthonyla.paperize.data.database.Magen WallpaperDatabase
+import com.anthonyla.paperize.data.database.MagenWallpaperDatabase
 import com.anthonyla.paperize.data.database.dao.AlbumDao
 import com.anthonyla.paperize.data.database.dao.FolderDao
 import com.anthonyla.paperize.data.database.dao.WallpaperCurrentDao
@@ -38,10 +38,10 @@ object AppModule {
      */
     @Provides
     @Singleton
-    fun provideMagen WallpaperDatabase(app: Application): Magen WallpaperDatabase {
+    fun provideMagenWallpaperDatabase(app: Application): MagenWallpaperDatabase {
         return Room.databaseBuilder(
             app,
-            Magen WallpaperDatabase::class.java,
+            MagenWallpaperDatabase::class.java,
             Constants.DATABASE_NAME
         )
             .fallbackToDestructiveMigration(dropAllTables = true)
@@ -53,27 +53,27 @@ object AppModule {
      */
     @Provides
     @Singleton
-    fun provideAlbumDao(database: Magen WallpaperDatabase): AlbumDao =
+    fun provideAlbumDao(database: MagenWallpaperDatabase): AlbumDao =
         database.albumDao()
 
     @Provides
     @Singleton
-    fun provideWallpaperDao(database: Magen WallpaperDatabase): WallpaperDao =
+    fun provideWallpaperDao(database: MagenWallpaperDatabase): WallpaperDao =
         database.wallpaperDao()
 
     @Provides
     @Singleton
-    fun provideFolderDao(database: Magen WallpaperDatabase): FolderDao =
+    fun provideFolderDao(database: MagenWallpaperDatabase): FolderDao =
         database.folderDao()
 
     @Provides
     @Singleton
-    fun provideWallpaperQueueDao(database: Magen WallpaperDatabase): WallpaperQueueDao =
+    fun provideWallpaperQueueDao(database: MagenWallpaperDatabase): WallpaperQueueDao =
         database.wallpaperQueueDao()
 
     @Provides
     @Singleton
-    fun provideWallpaperCurrentDao(database: Magen WallpaperDatabase): WallpaperCurrentDao =
+    fun provideWallpaperCurrentDao(database: MagenWallpaperDatabase): WallpaperCurrentDao =
         database.wallpaperCurrentDao()
 
     /**
@@ -91,7 +91,7 @@ object AppModule {
     @Singleton
     fun provideAlbumRepository(
         @ApplicationContext context: Context,
-        database: Magen WallpaperDatabase,
+        database: MagenWallpaperDatabase,
         albumDao: AlbumDao,
         wallpaperDao: WallpaperDao,
         folderDao: FolderDao,

@@ -15,12 +15,13 @@ import com.anthonyla.paperize.service.worker.WallpaperScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 /**
- * Application class for Magen Wallpaper
+ * Application class for MagenWallpaper
  *
  * Annotated with @HiltAndroidApp to enable dependency injection
  * Implements Configuration.Provider for WorkManager with Hilt support
@@ -73,6 +74,7 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
         }
 
         val notificationManager = getSystemService(NotificationManager::class.java)
+            ?: error("NotificationManager system service not available")
         notificationManager.createNotificationChannel(channel)
     }
 
@@ -87,6 +89,11 @@ class MagenWallpaperApplication : Application(), Configuration.Provider, Default
     }
 
     override fun onTerminate() {
+        // Cancel any in-flight application-scoped coroutine work to avoid leaking the scope
+        // across emulator/test harness process reuse. (onTerminate is only invoked on real
+        // devices and emulators in the foreground process; it is not called when the OS kills
+        // the process to reclaim memory — but cancelling here is still correct hygiene.)
+        lifecycleScope.cancel()
         super.onTerminate()
     }
 }

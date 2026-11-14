@@ -6,7 +6,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 
 /**
- * Schedules a folder rescan whenever Magen Wallpaper enters the foreground.
+ * Schedules a folder rescan whenever MagenWallpaper enters the foreground.
  *
  * Unique work with [ExistingWorkPolicy.KEEP] coalesces rapid foreground transitions and avoids
  * running a second scan while an existing one is still active.

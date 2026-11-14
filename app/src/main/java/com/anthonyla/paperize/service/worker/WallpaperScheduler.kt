@@ -234,11 +234,9 @@ class WallpaperScheduler @Inject constructor(
 
         val homeActive = settings.homeEnabled && settings.homeAlbumId != null
         val lockActive = settings.lockEnabled && settings.lockAlbumId != null
-        val homeInterval = when {
-            !homeActive -> 0
-            settings.separateSchedules -> settings.homeIntervalMinutes
-            else -> settings.homeIntervalMinutes
-        }
+        // Both the separate-schedules branch and the shared-schedules branch resolve to the
+        // home interval when home is active. Collapse the dead `when` arm for clarity.
+        val homeInterval = if (homeActive) settings.homeIntervalMinutes else 0
         val lockInterval = when {
             !lockActive -> 0
             settings.separateSchedules -> settings.lockIntervalMinutes

@@ -43,13 +43,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Displays the home and lock wallpapers Magen Wallpaper last applied.
+ * Displays the home and lock wallpapers MagenWallpaper last applied.
  *
  * The images are loaded from the recorded source URIs ([homeWallpaperUri]/[lockWallpaperUri]) via
  * Coil, rather than read back from WallpaperManager.getDrawable(): the latter is privacy-restricted
  * on modern Android and returns null without the optional all-files-access permission, which left
  * the preview blank. The URIs already carry the album's persisted read access, so no extra
- * permission is needed. They update reactively whenever Magen Wallpaper changes the wallpaper.
+ * permission is needed. They update reactively whenever MagenWallpaper changes the wallpaper.
  *
  * Note: this shows the source image, not the exact cropped/scaled/effected on-screen result.
  *

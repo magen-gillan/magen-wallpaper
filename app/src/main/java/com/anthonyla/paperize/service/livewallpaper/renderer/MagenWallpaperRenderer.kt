@@ -37,7 +37,7 @@ class MagenWallpaperRenderer(
 ) : GLSurfaceView.Renderer {
 
     companion object {
-        private const val TAG = "Magen WallpaperRenderer"
+        private const val TAG = "MagenWallpaperRenderer"
         // Time-based crossfade duration in milliseconds (consistent across all refresh rates)
         private const val CROSSFADE_DURATION_MS = Constants.CROSSFADE_DURATION_MS
     }
@@ -763,6 +763,27 @@ class MagenWallpaperRenderer(
             Log.d(TAG, "Scaling type updated: $scalingType")
             callbacks.requestRender()
         }
+    }
+
+    /**
+     * Free non-GL resources held by the renderer (coroutine scope, in-flight load jobs, and
+     * in-memory picture references). Safe to call from any thread — it performs no GL operations,
+     * so it works even after the GL thread has exited (which is the case when the engine's
+     * `onSurfaceDestroyed` has already torn down EGL by the time the engine's `onDestroy` runs).
+     *
+     * GL resources (textures, FBOs, shader programs) are freed automatically by EGL teardown; the
+     * GL-side cleanup in [destroy] would be a no-op on a dead GL thread, so we split the non-GL
+     * cleanup into this method.
+     */
+    fun onEngineDestroyed() {
+        loadingScope.cancel()
+        currentLoadJob?.cancel()
+        // Drop in-memory references so the bitmaps can be GC'd even if GLPicture.recycle()
+        // (which must run on the GL thread) was skipped.
+        currentPicture = null
+        nextPicture = null
+        currentImageLoader = null
+        Log.d(TAG, "Renderer non-GL resources released")
     }
 
     /**

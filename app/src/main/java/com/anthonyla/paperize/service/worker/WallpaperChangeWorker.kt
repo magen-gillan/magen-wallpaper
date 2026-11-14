@@ -8,7 +8,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.anthonyla.paperize.core.EmptyAlbumException
-import com.anthonyla.paperize.core.Result as Magen WallpaperResult
+import com.anthonyla.paperize.core.Result as MagenWallpaperResult
 import com.anthonyla.paperize.core.ScreenType
 import com.anthonyla.paperize.core.constants.Constants
 import com.anthonyla.paperize.core.util.setBitmapChecked
@@ -111,7 +111,7 @@ class WallpaperChangeWorker @AssistedInject constructor(
         wallpaperManager: WallpaperManager
     ) {
         when (val result = changeWallpaperUseCase(albumId, ScreenType.HOME)) {
-            is Magen WallpaperResult.Success -> {
+            is MagenWallpaperResult.Success -> {
                 val prepared = result.data
                 val samePresentation =
                     settings.homeEffects == settings.lockEffects &&
@@ -144,7 +144,7 @@ class WallpaperChangeWorker @AssistedInject constructor(
                             prepared.wallpaperId
                         )
                     ) {
-                        is Magen WallpaperResult.Success -> {
+                        is MagenWallpaperResult.Success -> {
                             val lockBitmap = lockResult.data
                             try {
                                 wallpaperManager.setBitmapChecked(
@@ -158,13 +158,13 @@ class WallpaperChangeWorker @AssistedInject constructor(
                             }
                         }
 
-                        is Magen WallpaperResult.Error -> throw asException(lockResult.exception)
-                        Magen WallpaperResult.Loading -> error("Unexpected loading result")
+                        is MagenWallpaperResult.Error -> throw asException(lockResult.exception)
+                        MagenWallpaperResult.Loading -> error("Unexpected loading result")
                     }
                 }
             }
 
-            is Magen WallpaperResult.Error -> {
+            is MagenWallpaperResult.Error -> {
                 if (result.exception is EmptyAlbumException) {
                     Log.w(TAG, "Album is empty for BOTH screens; disabling changer")
                     settingsRepository.updateScheduleSettings(
@@ -179,7 +179,7 @@ class WallpaperChangeWorker @AssistedInject constructor(
                 }
             }
 
-            Magen WallpaperResult.Loading -> error("Unexpected loading result")
+            MagenWallpaperResult.Loading -> error("Unexpected loading result")
         }
     }
 
@@ -190,7 +190,7 @@ class WallpaperChangeWorker @AssistedInject constructor(
         wallpaperManager: WallpaperManager
     ) {
         when (val result = changeWallpaperUseCase(albumId, screenType)) {
-            is Magen WallpaperResult.Success -> {
+            is MagenWallpaperResult.Success -> {
                 val flag = when (screenType) {
                     ScreenType.HOME -> WallpaperManager.FLAG_SYSTEM
                     ScreenType.LOCK -> WallpaperManager.FLAG_LOCK
@@ -200,7 +200,7 @@ class WallpaperChangeWorker @AssistedInject constructor(
                 Log.d(TAG, "$screenType wallpaper changed successfully")
             }
 
-            is Magen WallpaperResult.Error -> {
+            is MagenWallpaperResult.Error -> {
                 if (result.exception is EmptyAlbumException) {
                     disableEmptyScreen(screenType, settings)
                 } else {
@@ -208,7 +208,7 @@ class WallpaperChangeWorker @AssistedInject constructor(
                 }
             }
 
-            Magen WallpaperResult.Loading -> error("Unexpected loading result")
+            MagenWallpaperResult.Loading -> error("Unexpected loading result")
         }
     }
 

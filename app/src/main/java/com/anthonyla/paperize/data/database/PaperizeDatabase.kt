@@ -3,7 +3,7 @@ package com.anthonyla.paperize.data.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.anthonyla.paperize.data.database.converters.TypeConverters as Magen WallpaperTypeConverters
+import com.anthonyla.paperize.data.database.converters.TypeConverters as MagenWallpaperTypeConverters
 import com.anthonyla.paperize.data.database.dao.AlbumDao
 import com.anthonyla.paperize.data.database.dao.FolderDao
 import com.anthonyla.paperize.data.database.dao.WallpaperCurrentDao
@@ -17,7 +17,7 @@ import com.anthonyla.paperize.data.database.entities.WallpaperQueueEntity
 import com.anthonyla.paperize.core.constants.Constants
 
 /**
- * Magen Wallpaper Room Database
+ * MagenWallpaper Room Database
  *
  * **MAJOR ARCHITECTURAL IMPROVEMENT:**
  * - Properly normalized schema (no nested collections in entities)
@@ -40,8 +40,8 @@ import com.anthonyla.paperize.core.constants.Constants
     version = Constants.DATABASE_VERSION,
     exportSchema = true
 )
-@TypeConverters(Magen WallpaperTypeConverters::class)
-abstract class Magen WallpaperDatabase : RoomDatabase() {
+@TypeConverters(MagenWallpaperTypeConverters::class)
+abstract class MagenWallpaperDatabase : RoomDatabase() {
     abstract fun albumDao(): AlbumDao
     abstract fun wallpaperDao(): WallpaperDao
     abstract fun folderDao(): FolderDao
