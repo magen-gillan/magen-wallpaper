@@ -298,11 +298,19 @@ fun MagenWelcomeScreen(
             val mh = ms.first { it.layoutId == "h" }
             val mp = ms.first { it.layoutId == "p" }
             fun fixedW(x: Int) = Constraints(minWidth = x, maxWidth = x)
-            // pass 1: natural heights → scale; pass 2: re-measure wider so the scaled block fills the column
-            val b0 = mb.measure(fixedW(colW))
-            val p0 = mp.measure(fixedW(colW))
+            // Two-pass measure to scale the column to fit: first get the natural height each
+            // child would take at colW, compute the scale, then do the real measure() at the
+            // wider width (colW/s) so the scaled-down result fills colW exactly.
+            //
+            // IMPORTANT: measure() may only be called ONCE per Measurable (calling it twice
+            // throws "measure() may not be called multiple times on the same Measurable",
+            // which was crashing the app on launch). For the pre-measure pass we use
+            // maxIntrinsicHeight(width) instead — it returns the height the content would take
+            // at exactly `width` pixels and is safe to call multiple times.
+            val bH0 = mb.maxIntrinsicHeight(colW)
+            val pH0 = mp.maxIntrinsicHeight(colW)
             val avail = if (land) h else (h * 0.78f).toInt()
-            val s = (avail.toFloat() / (b0.height + p0.height)).coerceIn(0.5f, 1f)
+            val s = (avail.toFloat() / (bH0 + pH0)).coerceIn(0.5f, 1f)
             val wide = (colW / s).toInt()
             val b = mb.measure(fixedW(wide))
             val p = mp.measure(fixedW(wide))
