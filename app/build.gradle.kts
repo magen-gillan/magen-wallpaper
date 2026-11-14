@@ -32,8 +32,8 @@ android {
         applicationId = "com.anthonyla.paperize"
         minSdk = 31
         targetSdk = 36
-        versionCode = 60
-        versionName = "4.0.9"
+        versionCode = 61
+        versionName = "4.0.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
