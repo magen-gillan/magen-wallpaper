@@ -19,11 +19,10 @@ import com.anthonyla.paperize.presentation.common.navigation.util.exitTransition
 import com.anthonyla.paperize.presentation.screens.album_view.AlbumViewScreen
 import com.anthonyla.paperize.presentation.screens.folder_view.FolderViewScreen
 import com.anthonyla.paperize.presentation.screens.home.HomeScreen
-import com.anthonyla.paperize.presentation.screens.notification.NotificationPermissionScreen
 import com.anthonyla.paperize.presentation.screens.privacy.PrivacyScreen
 import com.anthonyla.paperize.presentation.screens.settings.SettingsScreen
 import com.anthonyla.paperize.presentation.screens.sort.SortViewScreen
-import com.anthonyla.paperize.presentation.screens.startup.StartupScreen
+import com.anthonyla.paperize.presentation.screens.welcome.WelcomeScreen
 import com.anthonyla.paperize.presentation.screens.wallpaper_view.WallpaperViewScreen
 
 /**
@@ -53,26 +52,23 @@ fun NavigationGraph(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        // Startup screen (first launch)
+        // Welcome (first launch): Alisha asks for every permission with ONE button.
         composable<StartupRoute>(
             enterTransition = enterForward,
             exitTransition = exitForward,
             popEnterTransition = enterBackward,
             popExitTransition = exitBackward
         ) {
-            StartupScreen(
-                onAgree = {
+            WelcomeScreen(
+                onFinished = {
                     navController.navigate(WallpaperModeSelectionRoute) {
                         popUpTo<StartupRoute> { inclusive = true }
                     }
-                },
-                onPrivacyClick = {
-                    navController.navigate(PrivacyRoute)
                 }
             )
         }
 
-        // Wallpaper mode selection is required because the home screen depends on STATIC or LIVE.
+        // Wallpaper mode selection stays a separate screen (home depends on STATIC or LIVE).
         composable<WallpaperModeSelectionRoute>(
             enterTransition = enterForward,
             exitTransition = exitForward,
@@ -81,32 +77,9 @@ fun NavigationGraph(
         ) {
             com.anthonyla.paperize.presentation.screens.wallpaper_mode_selection.WallpaperModeSelectionScreen(
                 onModeSelected = {
-                    if (!PermissionUtil.hasNotificationPermission(context)) {
-                        navController.navigate(NotificationRoute) {
-                            popUpTo<WallpaperModeSelectionRoute> { inclusive = true }
-                        }
-                    } else {
-                        onFirstLaunchComplete()
-                        navController.navigate(HomeRoute) {
-                            popUpTo<WallpaperModeSelectionRoute> { inclusive = true }
-                        }
-                    }
-                }
-            )
-        }
-
-        // Notification permission screen
-        composable<NotificationRoute>(
-            enterTransition = enterForward,
-            exitTransition = exitForward,
-            popEnterTransition = enterBackward,
-            popExitTransition = exitBackward
-        ) {
-            NotificationPermissionScreen(
-                onContinue = {
                     onFirstLaunchComplete()
                     navController.navigate(HomeRoute) {
-                        popUpTo<NotificationRoute> { inclusive = true }
+                        popUpTo<WallpaperModeSelectionRoute> { inclusive = true }
                     }
                 }
             )
