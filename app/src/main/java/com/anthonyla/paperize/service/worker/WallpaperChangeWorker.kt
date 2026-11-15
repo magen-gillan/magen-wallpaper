@@ -251,11 +251,18 @@ class WallpaperChangeWorker @AssistedInject constructor(
             }
 
             ScreenType.LOCK -> {
-                val homeStillActive = settings.homeEnabled && settings.homeAlbumId != null
+                // Re-read settings fresh from the repository instead of reusing the snapshot
+                // passed in. If HOME was also disabled in this same doWork() pass (moments
+                // earlier via the ScreenType.HOME branch above), the stale `settings` snapshot
+                // would still show homeAlbumId != null → homeStillActive = true → enableChanger
+                // left true even though both screens are now empty. Re-reading ensures we see
+                // the HOME disable that already happened.
+                val freshSettings = settingsRepository.getScheduleSettings()
+                val homeStillActive = freshSettings.homeEnabled && freshSettings.homeAlbumId != null
                 settingsRepository.updateScheduleSettings(
-                    settings.copy(
+                    freshSettings.copy(
                         lockAlbumId = null,
-                        enableChanger = homeStillActive && settings.enableChanger
+                        enableChanger = homeStillActive && freshSettings.enableChanger
                     )
                 )
             }

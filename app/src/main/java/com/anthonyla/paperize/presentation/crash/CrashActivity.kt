@@ -60,23 +60,20 @@ class CrashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         exceptionText = intent?.getStringExtra(GlobalExceptionHandler.EXCEPTION_EXTRA) ?: ""
+        // The logcat excerpt is captured by GlobalExceptionHandler in the crashing (main) process
+        // and passed via the Intent extra. This is necessary because CrashActivity runs in a
+        // separate ":crash" process, and on Android 16+ a process can only read its own UID's
+        // logcat — it cannot read the main process's log buffer directly.
+        logcatText = intent?.getStringExtra(GlobalExceptionHandler.LOGCAT_EXTRA) ?: ""
 
-        // Collect logcat on a background thread so the Activity can render immediately.
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    var logcat by remember { mutableStateOf(logcatText) }
-                    val scope = rememberCoroutineScope()
+                    // logcat is already populated from the Intent extra; no background collection
+                    // needed (the ":crash" process can't read the main process's logs anyway).
+                    val logcat = logcatText
                     val context = LocalContext.current
-
-                    if (logcat.isEmpty()) {
-                        scope.launch(Dispatchers.IO) {
-                            val collected = collectLogcat()
-                            logcatText = collected
-                            withContext(Dispatchers.Main) { logcat = collected }
-                        }
-                    }
 
                     CrashScreen(
                         exceptionText = exceptionText,
@@ -178,14 +175,6 @@ class CrashActivity : ComponentActivity() {
             }
             appendLine("Logcat:")
             appendLine(logcat)
-        }
-
-        fun collectLogcat(): String {
-            val process = Runtime.getRuntime()
-            val reader = BufferedReader(InputStreamReader(process.exec("logcat -d -v brief *:W").inputStream))
-            val sb = StringBuilder()
-            reader.lines().forEach(sb::appendLine)
-            return sb.toString()
         }
     }
 }

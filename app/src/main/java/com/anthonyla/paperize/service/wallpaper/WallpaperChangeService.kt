@@ -67,7 +67,9 @@ class WallpaperChangeService : Service() {
      * window for a single unlock, short enough to not swallow two genuinely separate unlocks
      * (which the user would expect to produce two distinct wallpaper changes).
      */
-    @Volatile
+    @Volatile // Belt-and-suspenders: the field is only read/written inside mutex.withLock {},
+              // which already provides happens-before visibility. @Volatile is kept as a defensive
+              // annotation in case a future refactor accesses it outside the mutex.
     private var lastFastChangeElapsedMs: Long = 0L
     private val fastChangeDedupWindowMs = 8_000L
 

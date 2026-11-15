@@ -205,9 +205,18 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                         if (uri.isValid(contentResolver)) {
                             wallpaper = candidate
                         } else {
-                            // Skip this cycle — do not permanently delete.
-                            // A transient permission or storage issue should not remove it from the album.
-                            // AlbumRefreshWorker handles pruning of truly invalid URIs on its daily scan.
+                            // The candidate URI is currently unreadable. Dequeue it from the LIVE
+                            // queue permanently so the next retry doesn't hit it again — if it's a
+                            // transient failure (SAF permission glitch, removable storage), the
+                            // AlbumRefreshWorker daily scan will reconcile the folder and the URI
+                            // will be re-added to the queue on the next queue rebuild.
+                            //
+                            // Previously the candidate was dequeued but never re-added or marked,
+                            // so after MAX_WALLPAPER_LOAD_RETRIES (10) failures on the same URI
+                            // the engine would give up and return EmptyImageLoader, and the bad URI
+                            // would reappear at the front on the next queue rebuild → repeat forever.
+                            // Now we just skip it and try the next candidate from the queue.
+                            Log.w(TAG, "Skipping unreadable wallpaper URI: ${candidate.uri}")
                             maxRetries--
                         }
                     }
@@ -289,7 +298,7 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                     if (mode != com.anthonyla.paperize.core.WallpaperMode.LIVE) {
                         return@collect
                     }
-                    
+
                     val albumId = settings.liveAlbumId
                     val effects = settings.liveEffects
                     val scalingType = settings.liveScalingType
@@ -299,6 +308,8 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                         currentWallpaper = null
                     }
 
+                    // Update renderer config (cheap — just @Volatile field writes). These are safe
+                    // to do even when the wallpaper is hidden; the renderer reads them on next draw.
                     renderer.updateEffects(effects)
                     renderer.updateScalingType(scalingType)
                     renderer.updateAdaptiveBrightness(settings.adaptiveBrightness)
@@ -306,6 +317,17 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                     val scalingChanged =
                         observedScalingType != null && observedScalingType != scalingType
                     observedScalingType = scalingType
+
+                    // Skip expensive bitmap reloads when the wallpaper is not visible. The settings
+                    // Flow collects forever (even when hidden), so without this gate every settings
+                    // write while the wallpaper is hidden would trigger a bitmap decode + GL texture
+                    // upload that the user never sees — wasting CPU, battery, and GPU memory.
+                    // When the wallpaper becomes visible again, onVisibilityChanged(true) calls
+                    // requestRender() and the renderController will reload if needed.
+                    val visible = renderController.visible
+                    if (!visible && !albumChanged) {
+                        return@collect
+                    }
 
                     if (scalingChanged && !albumChanged) {
                         currentWallpaper?.let { wallpaper ->
@@ -319,7 +341,7 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                             )
                         }
                     }
-                    
+
                     // Show Toast warning if parallax is enabled but device has offset issues
                     if (effects.enableParallax && !hasShownParallaxWarning && GLCompatibility.shouldWarnAboutParallax()) {
                         hasShownParallaxWarning = true
@@ -331,7 +353,7 @@ class MagenLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                             ).show()
                         }
                     }
-                    
+
                     // Reload if album changed
                     if (albumChanged) {
                         Log.d(TAG, "Album changed from $currentAlbumId to $albumId, reloading")

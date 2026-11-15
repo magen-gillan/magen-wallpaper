@@ -126,6 +126,18 @@ class WallpaperScheduler @Inject constructor(
         requireCharging: Boolean = false,
         onlyIfNotScheduled: Boolean = false
     ) {
+        // Pre-compute the isWorkScheduled / isAlbumRefreshScheduled checks OUTSIDE the mutex.
+        // These call workManager.getWorkInfosForUniqueWorkFlow(...).first() which hits
+        // WorkManager's internal Room DB — holding the scheduler mutex across a DB read
+        // serializes all scheduling operations behind a potentially slow query, which on
+        // slow devices blocks the ProcessLifecycleOwner foreground observer for hundreds of
+        // milliseconds. Reading them up front is safe because the schedule decisions are
+        // idempotent (enqueuing the same unique work with UPDATE policy is a no-op).
+        val bothAlreadyScheduled = isWorkScheduled(ScreenType.BOTH)
+        val homeAlreadyScheduled = isWorkScheduled(ScreenType.HOME)
+        val lockAlreadyScheduled = isWorkScheduled(ScreenType.LOCK)
+        val albumRefreshAlreadyScheduled = isAlbumRefreshScheduled()
+
         mutex.withLock {
                 // Don't cancel all first - let UPDATE policy handle existing work
                 // This prevents immediate wallpaper change when just updating intervals
@@ -139,7 +151,7 @@ class WallpaperScheduler @Inject constructor(
                 if (shouldSync) {
                     // When synchronized, schedule a single BOTH job that sets both screens
                     // This ensures both screens always show the same wallpaper
-                    if (!onlyIfNotScheduled || !isWorkScheduled(ScreenType.BOTH)) {
+                    if (!onlyIfNotScheduled || !bothAlreadyScheduled) {
                         scheduleWallpaperChange(
                             ScreenType.BOTH,
                             homeIntervalMinutes,
@@ -155,19 +167,17 @@ class WallpaperScheduler @Inject constructor(
                     }
                 } else {
                     // Independent schedules - schedule or cancel each separately
-                    // Check if BOTH was scheduled BEFORE cancelling it
-                    // This is needed to force schedule HOME/LOCK when switching from sync mode
-                    val wasBothScheduled = isWorkScheduled(ScreenType.BOTH)
-                    
-                    // Cancel BOTH job if it exists (switching from sync to separate mode)
-                    cancelWallpaperChange(ScreenType.BOTH)
-                    
                     // When switching away from sync mode, we must ensure HOME/LOCK are scheduled
                     // even if onlyIfNotScheduled is true, because they were previously suppressed
-                    val forceSchedule = wasBothScheduled
+                    val forceSchedule = bothAlreadyScheduled
+
+                    // Cancel BOTH job if it exists (switching from sync to separate mode)
+                    if (forceSchedule) {
+                        cancelWallpaperChange(ScreenType.BOTH)
+                    }
 
                     if (homeIntervalMinutes > 0) {
-                        if (!onlyIfNotScheduled || forceSchedule || !isWorkScheduled(ScreenType.HOME)) {
+                        if (!onlyIfNotScheduled || forceSchedule || !homeAlreadyScheduled) {
                             scheduleWallpaperChange(
                                 ScreenType.HOME,
                                 homeIntervalMinutes,
@@ -182,7 +192,7 @@ class WallpaperScheduler @Inject constructor(
                     }
 
                     if (lockIntervalMinutes > 0) {
-                        if (!onlyIfNotScheduled || forceSchedule || !isWorkScheduled(ScreenType.LOCK)) {
+                        if (!onlyIfNotScheduled || forceSchedule || !lockAlreadyScheduled) {
                             scheduleWallpaperChange(
                                 ScreenType.LOCK,
                                 lockIntervalMinutes,
@@ -198,7 +208,7 @@ class WallpaperScheduler @Inject constructor(
                 }
 
                 // Schedule daily album refresh to validate all albums
-                if (!onlyIfNotScheduled || !isAlbumRefreshScheduled()) {
+                if (!onlyIfNotScheduled || !albumRefreshAlreadyScheduled) {
                     scheduleAlbumRefresh()
                 } else {
                     Log.d(TAG, "Skipped scheduling album refresh - already scheduled")

@@ -74,15 +74,18 @@ interface WallpaperDao {
     suspend fun existsInAlbum(albumId: String, uri: String): Boolean
 
     /**
-     * Insert wallpaper
+     * Insert wallpaper (IGNORE strategy — if a row with the same PK already exists, keep the
+     * existing row unchanged. This prevents AlbumRefreshWorker's parallel folder scans from
+     * overwriting a wallpaper's folderId/displayOrder when two folders somehow yield the same
+     * wallpaper URI — the first insert wins and subsequent duplicates are silently dropped.)
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertWallpaper(wallpaper: WallpaperEntity)
 
     /**
-     * Insert multiple wallpapers
+     * Insert multiple wallpapers (IGNORE — see [insertWallpaper] for rationale).
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertWallpapers(wallpapers: List<WallpaperEntity>)
 
     /**
